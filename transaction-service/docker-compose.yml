@@ -1,0 +1,44 @@
+services:
+  transaction-service:
+    build: .
+    image: transaction-service
+    container_name: transaction-service
+    ports:
+      - "8083:8083"
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://transaction-db:5432/transactiondb
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASS}
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=true
+      - EUREKA_CLIENT_FETCH_REGISTRY=true
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+      - EUREKA_INSTANCE_HOSTNAME=transaction-service
+    depends_on:
+      - transaction-db
+    networks:
+      - microservices-network
+
+  transaction-db:
+    image: postgres:15
+    container_name: transaction-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: transactiondb
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - transaction_db_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    networks:
+      - microservices-network
+
+volumes:
+  transaction_db_data:
+
+networks:
+  microservices-network:
+    external: true
