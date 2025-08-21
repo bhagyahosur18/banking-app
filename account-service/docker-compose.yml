@@ -1,0 +1,44 @@
+services:
+  account-service:
+    build: .
+    image: account-service
+    container_name: account-service
+    ports:
+      - "8082:8082"
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://account-db:5432/accountdb
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASS}
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=true
+      - EUREKA_CLIENT_FETCH_REGISTRY=true
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+      - EUREKA_INSTANCE_HOSTNAME=account-service
+    depends_on:
+      - account-db
+    networks:
+      - microservices-network
+
+  account-db:
+    image: postgres:15
+    container_name: account-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: accountdb
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - account_db_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    networks:
+      - microservices-network
+
+volumes:
+  account_db_data:
+
+networks:
+  microservices-network:
+    external: true
