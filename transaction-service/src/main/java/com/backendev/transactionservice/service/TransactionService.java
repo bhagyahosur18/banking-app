@@ -1,14 +1,12 @@
 package com.backendev.transactionservice.service;
 
-import com.backendev.transactionservice.client.AccountServiceClient;
-import com.backendev.transactionservice.dto.AccountResponse;
 import com.backendev.transactionservice.dto.TransactionRequest;
 import com.backendev.transactionservice.dto.TransactionResponse;
 import com.backendev.transactionservice.dto.TransferRequest;
-import com.backendev.transactionservice.dto.UpdateAccountBalanceRequest;
 import com.backendev.transactionservice.entity.AccountBalance;
 import com.backendev.transactionservice.entity.Transaction;
 import com.backendev.transactionservice.enums.TransactionStatus;
+import com.backendev.transactionservice.enums.TransactionType;
 import com.backendev.transactionservice.exception.InsufficientFundsException;
 import com.backendev.transactionservice.exception.InvalidAccountException;
 import com.backendev.transactionservice.exception.TransactionProcessingException;
@@ -16,10 +14,8 @@ import com.backendev.transactionservice.mapper.AccountBalanceMapper;
 import com.backendev.transactionservice.mapper.TransactionMapper;
 import com.backendev.transactionservice.repository.AccountBalanceRepository;
 import com.backendev.transactionservice.repository.TransactionRepository;
-import feign.FeignException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,15 +30,16 @@ public class TransactionService {
     private static final Random random = new Random();
 
     private final TransactionRepository transactionRepository;
-    private final AccountServiceClient accountServiceClient;
+    private final AccountService accountService;
     private final AccountBalanceRepository accountBalanceRepository;
     private final TransactionMapper transactionMapper;
     private final AccountBalanceMapper accountBalanceMapper;
     private final UserInfoService userInfoService;
 
-    public TransactionService(TransactionRepository transactionRepository, AccountServiceClient accountServiceClient, AccountBalanceRepository accountBalanceRepository, TransactionMapper transactionMapper, AccountBalanceMapper accountBalanceMapper, UserInfoService userInfoService) {
+
+    public TransactionService(TransactionRepository transactionRepository, AccountService accountService, AccountBalanceRepository accountBalanceRepository, TransactionMapper transactionMapper, AccountBalanceMapper accountBalanceMapper, UserInfoService userInfoService) {
         this.transactionRepository = transactionRepository;
-        this.accountServiceClient = accountServiceClient;
+        this.accountService = accountService;
         this.accountBalanceRepository = accountBalanceRepository;
         this.transactionMapper = transactionMapper;
         this.accountBalanceMapper = accountBalanceMapper;
@@ -51,111 +48,92 @@ public class TransactionService {
 
     @Transactional(rollbackFor = Exception.class)
     public TransactionResponse deposit(@Valid TransactionRequest request) {
-        String currentUserId = userInfoService.getCurrentUserId();
-
-        AccountResponse account = validateAccount(request.getAccountNumber());
-        validateAccountOwnership(account, currentUserId);
-
-        Transaction transaction = transactionMapper.fromDepositRequest(request);
-        transaction.setTransactionId(generateTransactionId());
-        transactionRepository.save(transaction);
-
-        try {
-            updateBalance(request.getAccountNumber(), request.getAmount());
-
-            BigDecimal newBalance = getBalance(request.getAccountNumber());
-            transaction.setStatus(TransactionStatus.COMPLETED);
-            transaction.setUpdatedAt(Instant.now());
-            transactionRepository.save(transaction);
-
-            updateAccountBalance(request.getAccountNumber(), newBalance);
-            return transactionMapper.toResponseWithBalance(transaction, newBalance);
-
-        } catch (Exception e) {
-            transaction.setStatus(TransactionStatus.FAILED);
-            transactionRepository.save(transaction);
-            throw new TransactionProcessingException("Deposit failed");
-        }
+        return processTransaction(request, TransactionType.DEPOSIT,
+                () -> {
+                    updateAccountBalance(request.getAccountNumber(), request.getAmount());
+            return getBalance(request.getAccountNumber());
+        });
     }
 
     @Transactional(rollbackFor = Exception.class)
     public TransactionResponse withdraw(TransactionRequest request) {
-        String currentUserId = userInfoService.getCurrentUserId();
-        AccountResponse account = validateAccount(request.getAccountNumber());
-        validateAccountOwnership(account, currentUserId);
-
-        BigDecimal currentBalance = getBalance(request.getAccountNumber());
-        if (currentBalance.compareTo(request.getAmount()) < 0) {
-            throw new InsufficientFundsException("Insufficient balance");
-        }
-        Transaction transaction = transactionMapper.fromWithdrawalRequest(request);
-        transaction.setTransactionId(generateTransactionId());
-        transaction = transactionRepository.save(transaction);
-        try {
-            updateBalance(request.getAccountNumber(), request.getAmount().negate());
-            BigDecimal newBalance = getBalance(request.getAccountNumber());
-            transaction.setStatus(TransactionStatus.COMPLETED);
-            transaction.setUpdatedAt(Instant.now());
-            transaction = transactionRepository.save(transaction);
-            return transactionMapper.toResponseWithBalance(transaction, newBalance);
-
-        } catch (Exception e) {
-            transaction.setStatus(TransactionStatus.FAILED);
-            transactionRepository.save(transaction);
-            throw new TransactionProcessingException("Withdrawal failed: " + e.getMessage());
-        }
+        return processTransaction(request, TransactionType.WITHDRAWAL, () -> {
+            validateSufficientFunds(request.getAccountNumber(), request.getAmount());
+            updateAccountBalance(request.getAccountNumber(), request.getAmount().negate());
+            return getBalance(request.getAccountNumber());
+        });
     }
 
     public TransactionResponse transfer(TransferRequest request) {
         String currentUserId = userInfoService.getCurrentUserId();
-        AccountResponse fromAccount = validateAccount(request.getFromAccountNumber());
-        validateAccountOwnership(fromAccount, currentUserId);
+        accountService.validateAccountAndOwnership(request.getFromAccountNumber(), currentUserId);
 
-        BigDecimal currentBalance = getBalance(request.getFromAccountNumber());
-        if (currentBalance.compareTo(request.getAmount()) < 0) {
-            throw new InsufficientFundsException("Insufficient balance");
-        }
-        Transaction transaction = transactionMapper.fromTransferRequest(request);
-        transaction.setTransactionId(generateTransactionId());
-        transactionRepository.save(transaction);
+        Transaction transaction = createAndSaveTransaction(request, TransactionType.TRANSFER);
+
         try {
-            updateBalance(request.getFromAccountNumber(), request.getAmount().negate());
-            updateBalance(request.getToAccountNumber(), request.getAmount());
-            BigDecimal userAccountNewBalance = getBalance(request.getFromAccountNumber());
-            transaction.setStatus(TransactionStatus.COMPLETED);
-            transaction.setUpdatedAt(Instant.now());
-            transactionRepository.save(transaction);
-            return transactionMapper.toResponseWithBalance(transaction, userAccountNewBalance);
+            validateSufficientFunds(request.getFromAccountNumber(), request.getAmount());
+            updateAccountBalance(request.getFromAccountNumber(), request.getAmount().negate());
+            updateAccountBalance(request.getToAccountNumber(), request.getAmount());
 
+            BigDecimal newBalance = getBalance(request.getFromAccountNumber());
+            return completeTransaction(transaction, newBalance);
+
+        } catch (InsufficientFundsException | InvalidAccountException | TransactionProcessingException e) {
+            return failTransaction(transaction, "Transfer failed", e);
+        }
+    }
+
+    private TransactionResponse processTransaction(TransactionRequest request,
+                                                   TransactionType type,
+                                                   BalanceOperation operation) {
+        String currentUserId = userInfoService.getCurrentUserId();
+        accountService.validateAccountAndOwnership(request.getAccountNumber(), currentUserId);
+
+        Transaction transaction = createAndSaveTransaction(request, type);
+
+        try {
+            BigDecimal newBalance = operation.processBalanceChange();
+            return completeTransaction(transaction, newBalance);
         } catch (Exception e) {
-            transaction.setStatus(TransactionStatus.FAILED);
-            transactionRepository.save(transaction);
-            throw new TransactionProcessingException("Transfer failed");
+            String errorMessage = type == TransactionType.DEPOSIT ? "Deposit failed" : "Withdrawal failed";
+            return failTransaction(transaction, errorMessage, e);
         }
     }
 
-    private AccountResponse validateAccount(Long accountNumber) {
-        try {
-            ResponseEntity<AccountResponse> response = accountServiceClient.getAccount(accountNumber);
-            AccountResponse account = response.getBody();
-
-            if (account == null || !"ACTIVE".equals(account.getStatus())) {
-                throw new InvalidAccountException("Account not found or inactive");
-            }
-            return account;
-        } catch (FeignException e) {
-            throw new InvalidAccountException("Account validation failed", e);
-        }
+    private Transaction createAndSaveTransaction(Object request, TransactionType type) {
+        Transaction transaction = mapRequestToTransaction(request, type);
+        transaction.setTransactionId(generateTransactionId());
+        transaction.setStatus(TransactionStatus.PENDING);
+        transaction.setCreatedAt(Instant.now());
+        return transactionRepository.save(transaction);
     }
 
-    private void validateAccountOwnership(AccountResponse account, String currentUserId) {
-        if (!currentUserId.equals(account.getUserId())) {
-            throw new SecurityException("Access denied: Account does not belong to current user");
-        }
+    private Transaction mapRequestToTransaction(Object request, TransactionType type) {
+        return switch (type) {
+            case DEPOSIT -> transactionMapper.fromDepositRequest((TransactionRequest) request);
+            case WITHDRAWAL -> transactionMapper.fromWithdrawalRequest((TransactionRequest) request);
+            case TRANSFER -> transactionMapper.fromTransferRequest((TransferRequest) request);
+        };
+    }
+
+    private TransactionResponse completeTransaction(Transaction transaction, BigDecimal newBalance) {
+        transaction.setStatus(TransactionStatus.COMPLETED);
+        transaction.setUpdatedAt(Instant.now());
+        transaction = transactionRepository.save(transaction);
+        accountService.syncBalanceWithAccountService(transaction.getFromAccountNumber(), newBalance);
+        return transactionMapper.toResponseWithBalance(transaction, newBalance);
+    }
+
+    private TransactionResponse failTransaction(Transaction transaction, String errorMessage, Exception cause) {
+        transaction.setStatus(TransactionStatus.FAILED);
+        transaction.setUpdatedAt(Instant.now());
+        transactionRepository.save(transaction);
+
+        log.error("Transaction {} failed: {}", transaction.getTransactionId(), cause.getMessage(), cause);
+        throw new TransactionProcessingException(errorMessage, cause);
     }
 
     public BigDecimal getBalance(Long accountNumber) {
-        validateAccount(accountNumber);
         return accountBalanceRepository.findById(accountNumber)
                 .map(AccountBalance::getBalance)
                 .orElse(BigDecimal.ZERO);
@@ -165,7 +143,8 @@ public class TransactionService {
         return "TXN" + System.currentTimeMillis() +
                 String.format("%04d", random.nextInt(10000));
     }
-    private void updateBalance(Long accountNumber, BigDecimal amount) {
+
+    private void updateAccountBalance(Long accountNumber, BigDecimal amount) {
         AccountBalance accountBalance = accountBalanceRepository.findById(accountNumber)
                 .orElse(accountBalanceMapper.createAccountBalance(accountNumber, BigDecimal.ZERO));
 
@@ -175,25 +154,18 @@ public class TransactionService {
         accountBalanceRepository.save(accountBalance);
     }
 
-    private void updateAccountBalance(Long accountNumber, BigDecimal newBalance) {
-        try {
-            log.info("Updating account {} with balance: {}", accountNumber, newBalance); // Add this
-
-            if (newBalance == null) {
-                throw new IllegalArgumentException("Balance cannot be null");
-            }
-
-            UpdateAccountBalanceRequest updateRequest = new UpdateAccountBalanceRequest(accountNumber, newBalance);
-
-            ResponseEntity<AccountResponse> response = accountServiceClient.updateAccountBalance(accountNumber, updateRequest);
-            AccountResponse account = response.getBody();
-
-            if (account == null || !"ACTIVE".equals(account.getStatus())) {
-                throw new InvalidAccountException("Account not found or inactive");
-            }
-        } catch (FeignException e) {
-            throw new InvalidAccountException("Account validation failed", e);
+    private void validateSufficientFunds(Long accountNumber, BigDecimal amount) {
+        BigDecimal currentBalance = getBalance(accountNumber);
+        if (currentBalance.compareTo(amount) < 0) {
+            log.warn("Insufficient funds for account {}: required={}, available={}",
+                    accountNumber, amount, currentBalance);
+            throw new InsufficientFundsException("Insufficient balance. Required: " + amount + ", Available: " + currentBalance);
         }
+    }
+
+    @FunctionalInterface
+    private interface BalanceOperation {
+        BigDecimal processBalanceChange() throws InsufficientFundsException, InvalidAccountException, TransactionProcessingException;
     }
 
 }
