@@ -25,7 +25,6 @@ public class AccountService {
 
     public void validateAccountAndOwnership(Long accountNumber, String currentUserId) {
         AccountResponse account = validateAccount(accountNumber);
-
         if (!currentUserId.equals(account.getUserId())) {
             log.warn("Access denied: User {} attempted to access account {} owned by {}",
                     currentUserId, account.getAccountNumber(), account.getUserId());
