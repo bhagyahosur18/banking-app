@@ -59,5 +59,4 @@ public class TransactionController {
         AccountBalanceInfo accountBalance = transactionService.fetchAccountBalance(accountNumber);
         return new ResponseEntity<>(accountBalance, HttpStatus.OK);
     }
-
 }

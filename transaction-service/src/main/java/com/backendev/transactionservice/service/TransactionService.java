@@ -105,7 +105,8 @@ public class TransactionService {
     public List<TransactionInfo> fetchTransactionsByAccount(Long accountNumber) {
         if(!transactionRepository.existsByFromAccountNumber(accountNumber)){
             throw new AccountNumberNotFoundException("Account number does not exists: "+ accountNumber);
-        }        List<Transaction>  transactions = transactionRepository.findAllByFromAccountNumberOrderByCreatedAtDesc(accountNumber);
+        }
+        List<Transaction>  transactions = transactionRepository.findAllByFromAccountNumberOrderByCreatedAtDesc(accountNumber);
         log.info("Found {} transactions for account: {}", transactions.size(), accountNumber);
         return transactionMapper.toTransactionInfoList(transactions);
     }
