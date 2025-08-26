@@ -9,6 +9,5 @@ import java.util.List;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, String> {
 
-    boolean existsByFromAccountNumber(Long accountNumber);
     List<Transaction> findAllByFromAccountNumberOrderByCreatedAtDesc(Long accountNumber);
 }

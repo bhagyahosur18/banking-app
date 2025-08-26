@@ -8,7 +8,6 @@ import com.backendev.transactionservice.dto.TransferRequest;
 import com.backendev.transactionservice.entity.AccountBalance;
 import com.backendev.transactionservice.entity.Transaction;
 import com.backendev.transactionservice.enums.TransactionType;
-import com.backendev.transactionservice.exception.AccountNumberNotFoundException;
 import com.backendev.transactionservice.exception.InsufficientFundsException;
 import com.backendev.transactionservice.exception.InvalidAccountException;
 import com.backendev.transactionservice.exception.TransactionProcessingException;
@@ -53,8 +52,8 @@ public class TransactionService {
         return processTransaction(request, TransactionType.DEPOSIT,
                 () -> {
                     balanceManager.updateAccountBalance(request.getAccountNumber(), request.getAmount());
-            return balanceManager.getBalance(request.getAccountNumber());
-        });
+                    return balanceManager.getBalance(request.getAccountNumber());
+                });
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -103,21 +102,26 @@ public class TransactionService {
     }
 
     public List<TransactionInfo> fetchTransactionsByAccount(Long accountNumber) {
-        if(!transactionRepository.existsByFromAccountNumber(accountNumber)){
-            throw new AccountNumberNotFoundException("Account number does not exists: "+ accountNumber);
+        log.debug("Fetching transactions for account: {}", accountNumber);
+
+        List<Transaction> transactions = transactionRepository.findAllByFromAccountNumberOrderByCreatedAtDesc(accountNumber);
+
+        if (transactions.isEmpty()) {
+            throw new InvalidAccountException("Account number does not exists: " + accountNumber);
         }
-        List<Transaction>  transactions = transactionRepository.findAllByFromAccountNumberOrderByCreatedAtDesc(accountNumber);
         log.info("Found {} transactions for account: {}", transactions.size(), accountNumber);
         return transactionMapper.toTransactionInfoList(transactions);
     }
 
     public AccountBalanceInfo fetchAccountBalance(Long accountNumber) {
-        if(!accountBalanceRepository.existsByAccountNumber(accountNumber)){
-            throw new AccountNumberNotFoundException("Account number does not exists: "+ accountNumber);
-        }
-        AccountBalance accountBalance = accountBalanceRepository.findByAccountNumber(accountNumber);
-        return accountBalanceMapper.toAccountBalanceInfo(accountBalance);
+        log.debug("Fetching account balance for account: {}", accountNumber);
 
+        AccountBalance accountBalance = accountBalanceRepository.findByAccountNumber(accountNumber);
+
+        if (accountBalance == null) {
+            throw new InvalidAccountException("Account number does not exists: " + accountNumber);
+        }
+        return accountBalanceMapper.toAccountBalanceInfo(accountBalance);
     }
 
     @FunctionalInterface

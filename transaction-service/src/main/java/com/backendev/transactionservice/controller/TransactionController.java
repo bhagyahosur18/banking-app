@@ -7,6 +7,7 @@ import com.backendev.transactionservice.dto.TransactionResponse;
 import com.backendev.transactionservice.dto.TransferRequest;
 import com.backendev.transactionservice.service.TransactionService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,13 +50,13 @@ public class TransactionController {
     }
 
     @GetMapping("/account/{accountNumber}")
-    public ResponseEntity<List<TransactionInfo>> fetchTransactionsByAccount(@PathVariable Long accountNumber){
+    public ResponseEntity<List<TransactionInfo>> fetchTransactionsByAccount(@PathVariable @NotNull Long accountNumber){
         List<TransactionInfo> transactionInfo = transactionService.fetchTransactionsByAccount(accountNumber);
         return new ResponseEntity<>(transactionInfo,HttpStatus.OK);
     }
 
     @GetMapping("/balance/{accountNumber}")
-    public ResponseEntity<AccountBalanceInfo> fetchAccountBalance(@PathVariable Long accountNumber){
+    public ResponseEntity<AccountBalanceInfo> fetchAccountBalance(@PathVariable @NotNull Long accountNumber){
         AccountBalanceInfo accountBalance = transactionService.fetchAccountBalance(accountNumber);
         return new ResponseEntity<>(accountBalance, HttpStatus.OK);
     }
