@@ -1,20 +1,22 @@
 package com.backendev.transactionservice.mapper;
 
+import com.backendev.transactionservice.dto.TransactionInfo;
 import com.backendev.transactionservice.dto.TransactionRequest;
 import com.backendev.transactionservice.dto.TransactionResponse;
 import com.backendev.transactionservice.dto.TransferRequest;
 import com.backendev.transactionservice.entity.Transaction;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface TransactionMapper {
-    @Mapping(target = "timestamp", source = "createdAt")
-    @Mapping(target = "accountBalance", ignore = true)
-    TransactionResponse toResponse(Transaction transaction);
-
     // Enhanced mapping with user's account balance only
     @Mapping(target = "timestamp", source = "transaction.createdAt")
     @Mapping(target = "fromAccountNumber", source = "transaction.fromAccountNumber")
@@ -45,5 +47,18 @@ public interface TransactionMapper {
     @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
     @Mapping(target = "updatedAt", ignore = true)
     Transaction fromWithdrawalRequest(TransactionRequest request);
+
+    @Mapping(source = "createdAt", target = "createdAt", qualifiedByName = "instantToString")
+    @Mapping(source = "updatedAt", target = "updatedAt", qualifiedByName = "instantToString")
+    TransactionInfo toTransactionInfo(Transaction transactions);
+
+    List<TransactionInfo> toTransactionInfoList(List<Transaction> transactions);
+
+    @Named("instantToString")
+    default String instantToString(Instant instant) {
+        if (instant == null) return null;
+        return instant.atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"));
+    }
 
 }

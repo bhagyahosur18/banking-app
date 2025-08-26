@@ -1,19 +1,28 @@
 package com.backendev.transactionservice.service;
 
+import com.backendev.transactionservice.dto.AccountBalanceInfo;
+import com.backendev.transactionservice.dto.TransactionInfo;
 import com.backendev.transactionservice.dto.TransactionRequest;
 import com.backendev.transactionservice.dto.TransactionResponse;
 import com.backendev.transactionservice.dto.TransferRequest;
+import com.backendev.transactionservice.entity.AccountBalance;
 import com.backendev.transactionservice.entity.Transaction;
 import com.backendev.transactionservice.enums.TransactionType;
+import com.backendev.transactionservice.exception.AccountNumberNotFoundException;
 import com.backendev.transactionservice.exception.InsufficientFundsException;
 import com.backendev.transactionservice.exception.InvalidAccountException;
 import com.backendev.transactionservice.exception.TransactionProcessingException;
+import com.backendev.transactionservice.mapper.AccountBalanceMapper;
+import com.backendev.transactionservice.mapper.TransactionMapper;
+import com.backendev.transactionservice.repository.AccountBalanceRepository;
+import com.backendev.transactionservice.repository.TransactionRepository;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -23,12 +32,20 @@ public class TransactionService {
     private final UserInfoService userInfoService;
     private final TransactionProcessor transactionProcessor;
     private final BalanceManager balanceManager;
+    private final TransactionRepository transactionRepository;
+    private final TransactionMapper transactionMapper;
+    private final AccountBalanceRepository accountBalanceRepository;
+    private final AccountBalanceMapper accountBalanceMapper;
 
-    public TransactionService(AccountService accountService, UserInfoService userInfoService, TransactionProcessor transactionProcessor, BalanceManager balanceManager) {
+    public TransactionService(AccountService accountService, UserInfoService userInfoService, TransactionProcessor transactionProcessor, BalanceManager balanceManager, TransactionRepository transactionRepository, TransactionMapper transactionMapper, AccountBalanceRepository accountBalanceRepository, AccountBalanceMapper accountBalanceMapper) {
         this.accountService = accountService;
         this.userInfoService = userInfoService;
         this.transactionProcessor = transactionProcessor;
         this.balanceManager = balanceManager;
+        this.transactionRepository = transactionRepository;
+        this.transactionMapper = transactionMapper;
+        this.accountBalanceRepository = accountBalanceRepository;
+        this.accountBalanceMapper = accountBalanceMapper;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -83,6 +100,23 @@ public class TransactionService {
             String errorMessage = type == TransactionType.DEPOSIT ? "Deposit failed" : "Withdrawal failed";
             return transactionProcessor.failTransaction(transaction, errorMessage, e);
         }
+    }
+
+    public List<TransactionInfo> fetchTransactionsByAccount(Long accountNumber) {
+        if(!transactionRepository.existsByFromAccountNumber(accountNumber)){
+            throw new AccountNumberNotFoundException("Account number does not exists: "+ accountNumber);
+        }        List<Transaction>  transactions = transactionRepository.findAllByFromAccountNumberOrderByCreatedAtDesc(accountNumber);
+        log.info("Found {} transactions for account: {}", transactions.size(), accountNumber);
+        return transactionMapper.toTransactionInfoList(transactions);
+    }
+
+    public AccountBalanceInfo fetchAccountBalance(Long accountNumber) {
+        if(!accountBalanceRepository.existsByAccountNumber(accountNumber)){
+            throw new AccountNumberNotFoundException("Account number does not exists: "+ accountNumber);
+        }
+        AccountBalance accountBalance = accountBalanceRepository.findByAccountNumber(accountNumber);
+        return accountBalanceMapper.toAccountBalanceInfo(accountBalance);
+
     }
 
     @FunctionalInterface
