@@ -11,6 +11,7 @@ import com.backendev.transactionservice.mapper.TransactionMapper;
 import com.backendev.transactionservice.repository.TransactionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -32,6 +33,7 @@ public class TransactionProcessor {
         this.accountService = accountService;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Transaction createAndSaveTransaction(Object request, TransactionType type) {
         Transaction transaction = mapRequestToTransaction(request, type);
         transaction.setTransactionId(generateTransactionId());
@@ -40,6 +42,7 @@ public class TransactionProcessor {
         return transactionRepository.save(transaction);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public TransactionResponse completeTransaction(Transaction transaction, BigDecimal newBalance) {
         transaction.setStatus(TransactionStatus.COMPLETED);
         transaction.setUpdatedAt(Instant.now());
