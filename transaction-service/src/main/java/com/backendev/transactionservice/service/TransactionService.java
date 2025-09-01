@@ -44,7 +44,6 @@ public class TransactionService {
         this.transactionHandler = transactionHandler;
     }
 
-    @Transactional(rollbackFor = Exception.class)
     public TransactionResponse deposit(@Valid TransactionRequest request) {
         return transactionHandler.processTransaction(request, TransactionType.DEPOSIT,
                 () -> {
@@ -53,7 +52,6 @@ public class TransactionService {
                 });
     }
 
-    @Transactional(rollbackFor = Exception.class)
     public TransactionResponse withdraw(TransactionRequest request) {
         return transactionHandler.processTransaction(request, TransactionType.WITHDRAWAL, () -> {
             balanceManager.validateSufficientFunds(request.getAccountNumber(), request.getAmount());

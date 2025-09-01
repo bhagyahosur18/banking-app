@@ -6,6 +6,7 @@ import com.backendev.transactionservice.mapper.AccountBalanceMapper;
 import com.backendev.transactionservice.repository.AccountBalanceRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -22,12 +23,7 @@ public class BalanceManager {
         this.accountBalanceMapper = accountBalanceMapper;
     }
 
-    public BigDecimal getBalance(Long accountNumber) {
-        return accountBalanceRepository.findById(accountNumber)
-                .map(AccountBalance::getBalance)
-                .orElse(BigDecimal.ZERO);
-    }
-
+    @Transactional(readOnly = true)
     public void updateAccountBalance(Long accountNumber, BigDecimal amount) {
         AccountBalance accountBalance = accountBalanceRepository.findById(accountNumber)
                 .orElse(accountBalanceMapper.createAccountBalance(accountNumber, BigDecimal.ZERO));
@@ -38,6 +34,7 @@ public class BalanceManager {
         accountBalanceRepository.save(accountBalance);
     }
 
+    @Transactional(readOnly = true)
     public void validateSufficientFunds(Long accountNumber, BigDecimal amount) {
         BigDecimal currentBalance = getBalance(accountNumber);
         if (currentBalance.compareTo(amount) < 0) {
@@ -45,5 +42,11 @@ public class BalanceManager {
                     accountNumber, amount, currentBalance);
             throw new InsufficientFundsException("Insufficient balance. Required: " + amount + ", Available: " + currentBalance);
         }
+    }
+
+    public BigDecimal getBalance(Long accountNumber) {
+        return accountBalanceRepository.findById(accountNumber)
+                .map(AccountBalance::getBalance)
+                .orElse(BigDecimal.ZERO);
     }
 }
