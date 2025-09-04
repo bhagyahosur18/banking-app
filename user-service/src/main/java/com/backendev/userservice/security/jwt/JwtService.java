@@ -9,21 +9,13 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -54,15 +46,6 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    //Get username from token - JWT Filter
-    public String extractUsername(String token){
-        Claims claims = getClaims(token);
-        if (claims == null) {
-            return null; // Token is expired or invalid
-        }
-        return claims.getSubject();
-    }
-
     private Claims getClaims(String token) {
         try {
             return Jwts.parser()
@@ -76,6 +59,14 @@ public class JwtService {
             log.error("JWT expired.");
             throw new TokenExpiredException("JWT expired. Please log in again.", e);
         }
+    }
+
+    public String extractUsername(String token){
+        Claims claims = getClaims(token);
+        if (claims == null) {
+            return null; // Token is expired or invalid
+        }
+        return claims.getSubject();
     }
 
     // Validate JWT Token
@@ -92,17 +83,8 @@ public class JwtService {
         return claims.getExpiration().before(new Date());
     }
 
-    public Authentication getAuthentication(String token) {
+    public Date extractExpiration(String token) {
         Claims claims = getClaims(token);
-        String username = claims.getSubject();
-
-        List<String> roles = claims.get("roles", List.class);
-        List<GrantedAuthority> authorities = roles.stream()
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toList());
-
-        UserDetails principal = new User(username, "", authorities);
-        return new UsernamePasswordAuthenticationToken(principal, "", authorities);
+        return claims.getExpiration();
     }
-
 }

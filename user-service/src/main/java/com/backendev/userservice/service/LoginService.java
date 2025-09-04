@@ -28,21 +28,25 @@ public class LoginService {
 
     public AuthResponse login(AuthRequest authRequest) {
         AppUserDetails userDetails = authenticate(authRequest);
-        Map<String, Object> claims = buildClaims(userDetails);
-        String token = jwtService.generateToken(userDetails.getUsername(), claims);
-
+        String token = createJwtToken(userDetails);
+        AuthResponse authResponse = buildAuthResponseFromUserDetails(token, userDetails);
         auditService.auditLog(AuditEventType.LOGIN_SUCCESS, authRequest.getEmail(), "Login successful");
-        return new AuthResponse(token);
+        return authResponse;
     }
 
     private AppUserDetails authenticate(AuthRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         if (!authentication.isAuthenticated()) {
-            log.error("Login Service: ", "Failed to authenticate");
+            log.error("Login Service: Failed to authenticate");
             throw new BadCredentialsException("Invalid credentials");
         }
         return (AppUserDetails) authentication.getPrincipal();
+    }
+
+    private String createJwtToken(AppUserDetails userDetails) {
+        Map<String, Object> claims = buildClaims(userDetails);
+        return jwtService.generateToken(userDetails.getUsername(), claims);
     }
 
     private Map<String, Object> buildClaims(AppUserDetails userDetails) {
@@ -52,5 +56,16 @@ public class LoginService {
                 .map(GrantedAuthority::getAuthority)
                 .toList());
         return claims;
+    }
+
+    private AuthResponse buildAuthResponseFromUserDetails(String token, AppUserDetails userDetails) {
+        return new AuthResponse(
+                token,
+                userDetails.getUsername(),
+                userDetails.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .toList(),
+                jwtService.extractExpiration(token)
+        );
     }
 }

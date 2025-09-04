@@ -60,7 +60,7 @@ public class UsersController {
         try {
             AuthResponse authResponse = loginService.login(authRequest);
             log.debug("Login successful. JWT issued");
-            return new ResponseEntity<>(authResponse, HttpStatus.CREATED);
+            return new ResponseEntity<>(authResponse, HttpStatus.OK);
         } catch (BadCredentialsException exception) {
             log.error("Login failed for user {}", authRequest.getEmail());
             auditService.auditLog(AuditEventType.LOGIN_FAILURE, "", "Invalid credentials");
