@@ -8,7 +8,6 @@ class AccountServiceApplicationTests {
 
 	@Test
 	void contextLoads() {
-        throw new UnsupportedOperationException();
 	}
 
 }

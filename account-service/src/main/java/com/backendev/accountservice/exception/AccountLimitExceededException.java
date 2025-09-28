@@ -6,7 +6,4 @@ public class AccountLimitExceededException extends RuntimeException{
         super(message);
     }
 
-    public AccountLimitExceededException(String message, Throwable ex){
-        super(message, ex);
-    }
 }

@@ -17,6 +17,11 @@ import java.io.IOException;
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String UNAUTHORIZED_ERROR_FORMAT = "{\"error\":\"Unauthorized\",\"message\":\"%s\"}";
+
     private final JwtTokenValidator tokenValidator;
     private final PublicEndpointMatcher publicEndpointMatcher;
 
@@ -39,29 +44,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-
         log.info("Processing PROTECTED endpoint: {}", requestPath);
 
-        try {
-            String token = extractTokenFromRequest(request);
-            if (token == null) {
-                log.warn("No JWT token found for protected endpoint: {}", requestPath);
-                throw new JwtAuthenticationException("Missing or invalid Authorization header");
-            }
-
-            Authentication authentication = tokenValidator.validateTokenAndCreateAuthentication(token);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            log.debug("Successfully authenticated user: {} for path: {}",
-                    authentication.getName(), requestPath);
-
-        } catch (JwtAuthenticationException e) {
-            log.warn("JWT authentication failed for {}: {}", requestPath, e.getMessage());
-            writeErrorResponse(response, e.getMessage());
-            return;
-        } catch (Exception e) {
-            log.error("Unexpected error during authentication for {}", requestPath, e);
-            writeErrorResponse(response, "Authentication error");
+        if (!authenticateRequest(request, requestPath)) {
+            writeErrorResponse(response);
             return;
         }
 
@@ -69,16 +55,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String extractTokenFromRequest(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        String authHeader = request.getHeader(AUTHORIZATION_HEADER);
+        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
             return authHeader.substring(7);
         }
         return null;
     }
 
-    private void writeErrorResponse(HttpServletResponse response, String message) throws IOException {
+    private boolean authenticateRequest(HttpServletRequest request, String requestPath) {
+        try {
+            final String token = extractTokenFromRequest(request);
+
+            if (token == null) {
+                log.warn("No JWT token found for protected endpoint: {}", requestPath);
+                return false;
+            }
+
+            final Authentication authentication = tokenValidator.validateTokenAndCreateAuthentication(token);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            log.debug("Successfully authenticated user: {} for path: {}",
+                    authentication.getName(), requestPath);
+            return true;
+
+        } catch (JwtAuthenticationException e) {
+            log.warn("JWT authentication failed for {}: {}", requestPath, e.getMessage());
+            return false;
+        } catch (Exception e) {
+            log.error("Unexpected error during authentication for {}", requestPath, e);
+            return false;
+        }
+    }
+
+    private void writeErrorResponse(HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
-        response.getWriter().write(String.format("{\"error\":\"Unauthorized\",\"message\":\"%s\"}", message));
+        response.setContentType(CONTENT_TYPE_JSON);
+        response.getWriter().write(String.format(UNAUTHORIZED_ERROR_FORMAT, "Authentication failed"));
     }
 }

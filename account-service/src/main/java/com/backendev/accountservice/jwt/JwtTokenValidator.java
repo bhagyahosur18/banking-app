@@ -34,6 +34,7 @@ public class JwtTokenValidator {
         this.signingKey = createSigningKey();
         log.info("JWT Token Validator initialized with key length: {}",
                 secretKey != null ? secretKey.length() : 0);
+
     }
 
     public Authentication validateTokenAndCreateAuthentication(String token) throws JwtAuthenticationException {

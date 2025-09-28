@@ -20,7 +20,9 @@ public class PublicEndpointMatcher {
     );
 
     public boolean isPublicEndpoint(String path) {
-        return publicPaths.contains(path) ||
-                publicPrefixes.stream().anyMatch(path::startsWith);
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
+        return publicPaths.contains(path) || publicPrefixes.stream().anyMatch(path::startsWith);
     }
 }
