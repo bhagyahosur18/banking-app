@@ -6,7 +6,4 @@ public class AccountAccessDeniedException extends RuntimeException{
         super(message);
     }
 
-    public AccountAccessDeniedException(String message, Throwable ex){
-        super(message, ex);
-    }
 }

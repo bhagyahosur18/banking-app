@@ -6,7 +6,4 @@ public class AccountAlreadyExistsException extends RuntimeException{
         super(message);
     }
 
-    public AccountAlreadyExistsException(String message, Throwable throwable){
-        super(message, throwable);
-    }
 }
