@@ -30,6 +30,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(httpErrorResponse);
     }
 
+    @ExceptionHandler(InactiveAccountException.class)
+    public ResponseEntity<HttpErrorResponse> handleInactiveAccountException(InactiveAccountException exception) {
+        HttpErrorResponse httpErrorResponse = new HttpErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY,
+                exception.getMessage(), "Inactive account.");
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(httpErrorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<HttpErrorResponse> handleGenericException(Exception exception) {
         HttpErrorResponse httpErrorResponse = new HttpErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,

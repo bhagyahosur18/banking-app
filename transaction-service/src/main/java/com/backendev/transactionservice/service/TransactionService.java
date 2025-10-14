@@ -5,7 +5,6 @@ import com.backendev.transactionservice.dto.TransactionInfo;
 import com.backendev.transactionservice.dto.TransactionRequest;
 import com.backendev.transactionservice.dto.TransactionResponse;
 import com.backendev.transactionservice.dto.TransferRequest;
-import com.backendev.transactionservice.entity.AccountBalance;
 import com.backendev.transactionservice.entity.Transaction;
 import com.backendev.transactionservice.enums.TransactionType;
 import com.backendev.transactionservice.exception.InvalidAccountException;
@@ -62,8 +61,7 @@ public class TransactionService {
 
     public TransactionResponse transfer(TransferRequest request) {
         String currentUserId = userInfoService.getCurrentUserId();
-        accountService.validateAccountAndOwnership(request.getFromAccountNumber(), currentUserId);
-
+        accountService.validateTransferAccounts(request.getFromAccountNumber(), request.getToAccountNumber(), currentUserId);
         return transactionHandler.processTransferTransaction(request);
     }
 
@@ -84,11 +82,9 @@ public class TransactionService {
     public AccountBalanceInfo fetchAccountBalance(Long accountNumber) {
         log.debug("Fetching account balance for account: {}", accountNumber);
 
-        AccountBalance accountBalance = accountBalanceRepository.findByAccountNumber(accountNumber);
-
-        if (accountBalance == null) {
-            throw new InvalidAccountException("Account number does not exists: " + accountNumber);
-        }
-        return accountBalanceMapper.toAccountBalanceInfo(accountBalance);
+        return accountBalanceRepository.findByAccountNumber(accountNumber)
+                .map(accountBalanceMapper::toAccountBalanceInfo)
+                .orElseThrow(() -> new InvalidAccountException(
+                        "Account number does not exist: " + accountNumber));
     }
 }

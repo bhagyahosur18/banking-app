@@ -40,7 +40,12 @@ public class TransactionHandler {
 
         try {
             BigDecimal newBalance = operation.processBalanceChange();
-            return transactionProcessor.completeTransaction(transaction, newBalance);
+            TransactionResponse response = transactionProcessor.completeTransaction(transaction, newBalance);
+
+            //Sync after transaction commits
+            transactionProcessor.syncBalanceToAccountService(request.getAccountNumber(), newBalance);
+
+            return response;
         } catch (Exception e) {
             String errorMessage = type == TransactionType.DEPOSIT ? "Deposit failed" : "Withdrawal failed";
             return transactionProcessor.failTransaction(transaction, errorMessage, e);
@@ -56,8 +61,16 @@ public class TransactionHandler {
             balanceManager.updateAccountBalance(request.getFromAccountNumber(), request.getAmount().negate());
             balanceManager.updateAccountBalance(request.getToAccountNumber(), request.getAmount());
 
-            BigDecimal newBalance = balanceManager.getBalance(request.getFromAccountNumber());
-            return transactionProcessor.completeTransaction(transaction, newBalance);
+            BigDecimal fromBalance = balanceManager.getBalance(request.getFromAccountNumber());
+            BigDecimal toBalance = balanceManager.getBalance(request.getToAccountNumber());
+
+            TransactionResponse response = transactionProcessor.completeTransaction(transaction, fromBalance);
+
+            // Sync both accounts after transaction commits
+            transactionProcessor.syncBalanceToAccountService(request.getFromAccountNumber(), fromBalance);
+            transactionProcessor.syncBalanceToAccountService(request.getToAccountNumber(), toBalance);
+
+            return response;
 
         } catch (InsufficientFundsException | InvalidAccountException | TransactionProcessingException e) {
             return transactionProcessor.failTransaction(transaction, "Transfer failed", e);

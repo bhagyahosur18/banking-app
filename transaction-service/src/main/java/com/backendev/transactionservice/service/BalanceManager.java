@@ -23,7 +23,7 @@ public class BalanceManager {
         this.accountBalanceMapper = accountBalanceMapper;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public void updateAccountBalance(Long accountNumber, BigDecimal amount) {
         AccountBalance accountBalance = accountBalanceRepository.findById(accountNumber)
                 .orElse(accountBalanceMapper.createAccountBalance(accountNumber, BigDecimal.ZERO));

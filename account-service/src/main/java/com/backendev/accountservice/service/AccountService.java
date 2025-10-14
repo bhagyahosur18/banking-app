@@ -4,7 +4,9 @@ import com.backendev.accountservice.constants.AccountConstants;
 import com.backendev.accountservice.dto.AccountDetailsDto;
 import com.backendev.accountservice.dto.AccountDto;
 import com.backendev.accountservice.dto.AccountResponse;
+import com.backendev.accountservice.dto.AccountValidationDto;
 import com.backendev.accountservice.dto.CreateAccountRequest;
+import com.backendev.accountservice.dto.TransferValidationResponse;
 import com.backendev.accountservice.dto.UpdateAccountBalanceRequest;
 import com.backendev.accountservice.entity.Account;
 import com.backendev.accountservice.enums.AccountLimits;
@@ -12,6 +14,7 @@ import com.backendev.accountservice.enums.AccountStatus;
 import com.backendev.accountservice.enums.AccountType;
 import com.backendev.accountservice.exception.AccountLimitExceededException;
 import com.backendev.accountservice.exception.AccountNotFoundException;
+import com.backendev.accountservice.exception.InactiveAccountException;
 import com.backendev.accountservice.mapper.AccountMapper;
 import com.backendev.accountservice.repository.AccountRepository;
 import jakarta.validation.constraints.NotNull;
@@ -87,16 +90,14 @@ public class AccountService {
 
 
     public AccountResponse deleteAccount(Long accountNumber) {
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException(AccountConstants.ACCOUNT_NOT_FOUND + accountNumber));
+        Account account = fetchAccountFromAccountNumber(accountNumber);
         accountRepository.delete(account);
         return new AccountResponse("DELETED", "Account deleted successfully");
     }
 
-// From Transaction service
+    // From Transaction service
     public AccountDto updateAccountBalance(UpdateAccountBalanceRequest updateRequest) {
-        Account account = accountRepository.findByAccountNumber(updateRequest.getAccountNumber())
-                .orElseThrow(() -> new AccountNotFoundException(AccountConstants.ACCOUNT_NOT_FOUND + updateRequest.getAccountNumber()));
+        Account account = fetchAccountFromAccountNumber(updateRequest.getAccountNumber());
         account.setBalance(updateRequest.getBalance());
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
@@ -104,8 +105,7 @@ public class AccountService {
     }
 
     public AccountDto markAccountFrozen(@NotNull Long accountNumber) {
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException(AccountConstants.ACCOUNT_NOT_FOUND + accountNumber));
+        Account account = fetchAccountFromAccountNumber(accountNumber);
         account.setStatus(AccountStatus.FROZEN);
         accountRepository.save(account);
         return accountMapper.toAccountDto(account);
@@ -113,5 +113,27 @@ public class AccountService {
 
     public boolean doesUserOwnAccount(String userId, @NotNull Long accountNumber) {
         return accountRepository.existsByAccountNumberAndUserId(accountNumber, userId);
+    }
+
+    public TransferValidationResponse validateTransferAccounts(Long fromAccountNumber, Long toAccountNumber) {
+        Account fromAccount = fetchAccountFromAccountNumber(fromAccountNumber);
+        Account toAccount = fetchAccountFromAccountNumber(toAccountNumber);
+
+        if(!fromAccount.getStatus().equals(AccountStatus.ACTIVE)){
+            throw new InactiveAccountException(String.format("The source account %d is inactive", fromAccountNumber));
+        }
+        if(!toAccount.getStatus().equals(AccountStatus.ACTIVE)){
+            throw new InactiveAccountException(String.format("The destination account %d is inactive", toAccountNumber));
+        }
+
+        AccountValidationDto fromAccountDto = accountMapper.toAccountValidationDto(fromAccount);
+        AccountValidationDto toAccountDto = accountMapper.toAccountValidationDto(toAccount);
+
+        return new TransferValidationResponse(fromAccountDto, toAccountDto);
+    }
+
+    private Account fetchAccountFromAccountNumber(Long fromAccountNumber) {
+        return accountRepository.findByAccountNumber(fromAccountNumber)
+                .orElseThrow(() -> new AccountNotFoundException(AccountConstants.ACCOUNT_NOT_FOUND + fromAccountNumber));
     }
 }

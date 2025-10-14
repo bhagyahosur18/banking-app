@@ -2,6 +2,7 @@ package com.backendev.accountservice.mapper;
 
 import com.backendev.accountservice.dto.AccountDetailsDto;
 import com.backendev.accountservice.dto.AccountDto;
+import com.backendev.accountservice.dto.AccountValidationDto;
 import com.backendev.accountservice.dto.CreateAccountRequest;
 import com.backendev.accountservice.entity.Account;
 import org.mapstruct.Mapper;
@@ -25,10 +26,7 @@ public interface AccountMapper {
 
     // Custom method for complete account creation
     default Account createNewAccount(CreateAccountRequest request, String userId, Long accountNumber) {
-        Account account = toEntity(request);
-        account.setUserId(userId);
-        account.setAccountNumber(accountNumber);
-        return account;
+        return null;
     }
 
     AccountDto toAccountDto(Account account);
@@ -37,4 +35,5 @@ public interface AccountMapper {
 
     List<AccountDetailsDto> toAccountDetailsDto(List<Account> account);
 
+    AccountValidationDto toAccountValidationDto(Account fromAccount);
 }

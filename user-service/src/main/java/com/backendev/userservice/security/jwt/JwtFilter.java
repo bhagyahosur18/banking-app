@@ -44,7 +44,6 @@ public class JwtFilter extends OncePerRequestFilter {
         this.userServiceDetails = userServiceDetails;
     }
 
-
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         if (shouldBypassJwtProcessing(request)) {
@@ -52,7 +51,6 @@ public class JwtFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-
         String jwtToken = extractTokenFromRequest(request);
 
         if (jwtToken != null && !isAlreadyAuthenticated()) {
@@ -100,7 +98,6 @@ public class JwtFilter extends OncePerRequestFilter {
                 log.debug("Could not extract username from token");
                 return;
             }
-
             log.debug("Username extracted from token: {}", username);
 
             UserDetails userDetails = loadUserDetails(username);
@@ -128,7 +125,6 @@ public class JwtFilter extends OncePerRequestFilter {
             return null;
         }
     }
-
 
     private UserDetails loadUserDetails(String username) {
         try {
