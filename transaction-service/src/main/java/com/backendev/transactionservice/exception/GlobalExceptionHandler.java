@@ -30,6 +30,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(httpErrorResponse);
     }
 
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<HttpErrorResponse> handleServiceUnavailable(ServiceUnavailableException exception) {
+        HttpErrorResponse httpErrorResponse = new HttpErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage(), "Service unavailable.");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(httpErrorResponse);
+
+    }
     @ExceptionHandler(Exception.class)
     public ResponseEntity<HttpErrorResponse> handleGenericException(Exception exception) {
         HttpErrorResponse httpErrorResponse = new HttpErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,

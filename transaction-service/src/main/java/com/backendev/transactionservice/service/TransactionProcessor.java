@@ -47,10 +47,19 @@ public class TransactionProcessor {
         transaction.setStatus(TransactionStatus.COMPLETED);
         transaction.setUpdatedAt(Instant.now());
         transaction = transactionRepository.save(transaction);
-        accountService.syncBalanceWithAccountService(transaction.getFromAccountNumber(), newBalance);
         return transactionMapper.toResponseWithBalance(transaction, newBalance);
     }
 
+    public void syncBalanceToAccountService(Long accountNumber, BigDecimal balance) {
+        try {
+            log.info("Syncing balance for account {}: {}", accountNumber, balance);
+            accountService.syncBalanceWithAccountService(accountNumber, balance);
+            log.info("Successfully synced balance for account {}", accountNumber);
+        } catch (Exception e) {
+            log.error("Failed to sync balance for account {} Balance: {}",
+                    accountNumber, balance, e);
+        }
+    }
     public TransactionResponse failTransaction(Transaction transaction, String errorMessage, Exception cause) {
         transaction.setStatus(TransactionStatus.FAILED);
         transaction.setUpdatedAt(Instant.now());

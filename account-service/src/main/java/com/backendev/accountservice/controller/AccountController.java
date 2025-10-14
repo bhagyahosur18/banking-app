@@ -4,6 +4,7 @@ import com.backendev.accountservice.dto.AccountDetailsDto;
 import com.backendev.accountservice.dto.AccountDto;
 import com.backendev.accountservice.dto.AccountResponse;
 import com.backendev.accountservice.dto.CreateAccountRequest;
+import com.backendev.accountservice.dto.TransferValidationResponse;
 import com.backendev.accountservice.dto.UpdateAccountBalanceRequest;
 import com.backendev.accountservice.exception.AccountAccessDeniedException;
 import com.backendev.accountservice.service.AccountService;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -63,6 +65,20 @@ public class AccountController {
         }
         AccountDetailsDto accountDetailsDto = accountService.fetchAccountDetails(accountNumber, userId);
         return new ResponseEntity<>(accountDetailsDto,HttpStatus.OK);
+    }
+
+    //For transaction service -  validating accounts for transfer
+    @GetMapping("/validate-transfer")
+    public ResponseEntity<TransferValidationResponse> validateAccountsForTransfer(@RequestParam @NotNull Long fromAccountNumber,
+                                                                                  @RequestParam @NotNull Long toAccountNumber,
+                                                                                  @RequestParam String userId){
+        if (!accountService.doesUserOwnAccount(userId, fromAccountNumber)) {
+            throw new AccountAccessDeniedException("User does not own this account");
+        }
+        TransferValidationResponse transferValidationResponse =
+                accountService.validateTransferAccounts(fromAccountNumber, toAccountNumber);
+        return new ResponseEntity<>(transferValidationResponse,HttpStatus.OK);
+
     }
 
     //For transaction service to update balance
