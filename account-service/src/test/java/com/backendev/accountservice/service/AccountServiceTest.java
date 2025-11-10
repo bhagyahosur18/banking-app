@@ -24,10 +24,12 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -71,7 +73,7 @@ class AccountServiceTest {
         void shouldCreateAccount_whenValidRequest() {
             when(accountRepository.countByUserIdAndType(userId, AccountType.SAVINGS)).thenReturn(0L);
             when(accountRepository.existsByAccountNumber(anyLong())).thenReturn(false);
-            when(accountMapper.createNewAccount(any(), eq(userId), anyLong())).thenReturn(account);
+            when(accountMapper.toEntity(createAccountRequest)).thenReturn(account);
             when(accountRepository.save(account)).thenReturn(account);
             when(accountMapper.toAccountDto(account)).thenReturn(accountDto);
 
@@ -96,7 +98,7 @@ class AccountServiceTest {
             when(accountRepository.existsByAccountNumber(anyLong()))
                     .thenReturn(true)  // First call - duplicate exists
                     .thenReturn(false); // Second call - unique number
-            when(accountMapper.createNewAccount(any(), eq(userId), anyLong())).thenReturn(account);
+            when(accountMapper.toEntity(createAccountRequest)).thenReturn(account);
             when(accountRepository.save(account)).thenReturn(account);
             when(accountMapper.toAccountDto(account)).thenReturn(accountDto);
 

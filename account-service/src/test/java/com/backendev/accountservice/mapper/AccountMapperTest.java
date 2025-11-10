@@ -52,7 +52,9 @@ class AccountMapperTest {
         String userId = "user-123";
         Long accountNumber = 99999L;
 
-        Account account = mapper.createNewAccount(request, userId, accountNumber);
+        Account account = mapper.toEntity(request);
+        account.setUserId(userId);
+        account.setAccountNumber(accountNumber);
 
         assertThat(account).isNotNull();
         assertThat(account.getUserId()).isEqualTo(userId);
