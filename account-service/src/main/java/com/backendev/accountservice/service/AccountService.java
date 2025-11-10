@@ -45,7 +45,10 @@ public class AccountService {
 
         validateAccountLimit(userId, accountType);
 
-        Account account = accountMapper.createNewAccount(accountRequest, userId, generateRandomAccountNumber());
+        Account account = accountMapper.toEntity(accountRequest);
+        account.setUserId(userId);
+        account.setAccountNumber(generateRandomAccountNumber());
+
         Account saved = accountRepository.save(account);
 
         log.info("Account created for user with user Id {}", userId);
