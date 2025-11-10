@@ -24,11 +24,6 @@ public interface AccountMapper {
     @Mapping(target = "updatedAt", ignore = true)
     Account toEntity(CreateAccountRequest request);
 
-    // Custom method for complete account creation
-    default Account createNewAccount(CreateAccountRequest request, String userId, Long accountNumber) {
-        return null;
-    }
-
     AccountDto toAccountDto(Account account);
 
     AccountDetailsDto toAccountDetailsDto(Account account);
