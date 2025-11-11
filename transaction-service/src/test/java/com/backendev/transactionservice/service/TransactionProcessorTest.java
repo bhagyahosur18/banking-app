@@ -124,14 +124,18 @@ class TransactionProcessorTest {
         when(transactionRepository.save(transaction)).thenReturn(transaction);
         when(transactionMapper.toResponseWithBalance(transaction, NEW_BALANCE)).thenReturn(transactionResponse);
 
-        TransactionResponse result = transactionProcessor.completeTransaction(transaction, NEW_BALANCE);
+        transactionProcessor.completeTransaction(transaction, NEW_BALANCE);
 
-        assertNotNull(result);
         assertEquals(TransactionStatus.COMPLETED, transaction.getStatus());
         assertNotNull(transaction.getUpdatedAt());
         verify(transactionRepository).save(transaction);
-        verify(accountService).syncBalanceWithAccountService(ACCOUNT_NUMBER, NEW_BALANCE);
         verify(transactionMapper).toResponseWithBalance(transaction, NEW_BALANCE);
+    }
+
+    @Test
+    void syncBalanceToAccountService_Success() {
+        transactionProcessor.syncBalanceToAccountService(ACCOUNT_NUMBER, NEW_BALANCE);
+        verify(accountService).syncBalanceWithAccountService(ACCOUNT_NUMBER, NEW_BALANCE);
     }
 
     @Test

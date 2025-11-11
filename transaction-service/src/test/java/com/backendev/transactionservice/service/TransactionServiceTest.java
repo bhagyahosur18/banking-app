@@ -17,8 +17,6 @@ import com.backendev.transactionservice.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,6 +26,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -67,9 +66,6 @@ class TransactionServiceTest {
 
     @InjectMocks
     private TransactionService transactionService;
-
-    @Captor
-    private ArgumentCaptor<TransactionHandler.BalanceOperation> balanceOperationCaptor;
 
     private static final String USER_ID = "user123";
     private static final Long ACCOUNT_NUMBER = 12345L;
@@ -192,14 +188,14 @@ class TransactionServiceTest {
         assertNotNull(result);
         assertEquals(TransactionStatus.COMPLETED, result.getStatus());
         verify(userInfoService).getCurrentUserId();
-        verify(accountService).validateAccountAndOwnership(ACCOUNT_NUMBER, USER_ID);
+        verify(accountService).validateTransferAccounts(ACCOUNT_NUMBER, TO_ACCOUNT_NUMBER, USER_ID);
         verify(transactionHandler).processTransferTransaction(transferRequest);
     }
 
     @Test
     void fetchTransactionsByAccount_Success() {
-        List<Transaction> transactions = Arrays.asList(transaction);
-        List<TransactionInfo> transactionInfoList = Arrays.asList(transactionInfo);
+        List<Transaction> transactions = Collections.singletonList(transaction);
+        List<TransactionInfo> transactionInfoList = Collections.singletonList(transactionInfo);
 
         when(transactionRepository.findAllByFromAccountNumberOrderByCreatedAtDesc(ACCOUNT_NUMBER))
                 .thenReturn(transactions);
@@ -252,7 +248,7 @@ class TransactionServiceTest {
 
     @Test
     void fetchAccountBalance_Success() {
-        when(accountBalanceRepository.findByAccountNumber(ACCOUNT_NUMBER)).thenReturn(accountBalance);
+        when(accountBalanceRepository.findByAccountNumber(ACCOUNT_NUMBER)).thenReturn(Optional.of(accountBalance));
         when(accountBalanceMapper.toAccountBalanceInfo(accountBalance)).thenReturn(accountBalanceInfo);
 
         AccountBalanceInfo result = transactionService.fetchAccountBalance(ACCOUNT_NUMBER);
@@ -267,7 +263,7 @@ class TransactionServiceTest {
 
     @Test
     void fetchAccountBalance_AccountNotFound_ThrowsException() {
-        when(accountBalanceRepository.findByAccountNumber(ACCOUNT_NUMBER)).thenReturn(null);
+        when(accountBalanceRepository.findByAccountNumber(ACCOUNT_NUMBER)).thenReturn(Optional.empty());
 
         assertThrows(InvalidAccountException.class,
                 () -> transactionService.fetchAccountBalance(ACCOUNT_NUMBER));
