@@ -72,7 +72,7 @@ Each service is independently deployable, Dockerized, and registered with Eureka
 
 This project uses popular Spring Boot and Spring Cloud dependencies that include transitive libraries with known CVEs. These do not directly impact functionality but may pose risks in certain container environments or edge cases.
 
-### 📦 spring-boot-starter-web
+### spring-boot-starter-web
 
 | Transitive Dependency                         | CVE ID                         | Issue Type                                          | Severity |
 |-----------------------------------------------|--------------------------------|-----------------------------------------------------|----------|
@@ -80,13 +80,13 @@ This project uses popular Spring Boot and Spring Cloud dependencies that include
 | `org.apache.tomcat.embed:tomcat-embed-core`   | Multiple (e.g. CVE-2021-25329) | Deserialization, Info Disclosure, Request Smuggling | 7.0–7.5  |
 | `com.fasterxml.jackson.core:jackson-databind` | CVE-2020-36518                 | Out-of-bounds Write                                 | 7.5      |
 
-### 📦 spring-cloud-starter-netflix-eureka-server
+### spring-cloud-starter-netflix-eureka-server
 
 | Transitive Dependency                             | CVE ID                   | Issue Type                        | Severity |
 |---------------------------------------------------|--------------------------|-----------------------------------|----------|
 | `com.thoughtworks.xstream:xstream:1.4.20`         | CVE-2024-47072           | Deserialization of Untrusted Data | 7.5      |
 
-> ⚠️ This project is for educational and demonstration purposes. While known CVEs are monitored and mitigated, production deployments should include dependency scanning, container hardening, and regular patching.
+> This project is for educational and demonstration purposes. While known CVEs are monitored and mitigated, production deployments should include dependency scanning, container hardening, and regular patching.
 
 ---
 
