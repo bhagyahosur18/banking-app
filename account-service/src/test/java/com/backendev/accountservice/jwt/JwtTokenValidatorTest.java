@@ -19,7 +19,6 @@ class JwtTokenValidatorTest {
 
     private JwtTokenValidator validator;
     private SecretKey signingKey;
-    private String secretKeyString;
 
     private static final String DEFAULT_USER_ID = "123";
 
@@ -27,7 +26,7 @@ class JwtTokenValidatorTest {
     @BeforeEach
     void setUp() {
         signingKey = Jwts.SIG.HS256.key().build();
-        secretKeyString = Base64.getEncoder().encodeToString(signingKey.getEncoded());
+        String secretKeyString = Base64.getEncoder().encodeToString(signingKey.getEncoded());
         validator = new JwtTokenValidator(secretKeyString);
     }
 
