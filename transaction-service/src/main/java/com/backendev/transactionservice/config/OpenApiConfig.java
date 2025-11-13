@@ -1,4 +1,4 @@
-package com.backendev.accountservice.config;
+package com.backendev.transactionservice.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -17,17 +17,14 @@ public class OpenApiConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Account service")
+                        .title("Transaction service")
                         .version("1.0")
-                        .description("API for creating and managing account."))
+                        .description("API for processing deposits, withdrawals, transfers and transaction history"))
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
-                .components(new Components()
-                        .addSecuritySchemes(SECURITY_SCHEME_NAME, new SecurityScheme()
-                                .name("BearerAuth")
-                                .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("JWT")
-                                .description("JWT token obtained from authentication service"))
-                );
+                .components(new Components().addSecuritySchemes(SECURITY_SCHEME_NAME, new SecurityScheme()
+                        .name("Authorization")
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")
+                        .bearerFormat("JWT")));
     }
 }
