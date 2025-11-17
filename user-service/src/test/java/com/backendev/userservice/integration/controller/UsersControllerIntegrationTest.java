@@ -6,10 +6,8 @@ import com.backendev.userservice.dto.UserRegistrationRequest;
 import com.backendev.userservice.dto.UserRegistrationResponse;
 import com.backendev.userservice.entity.Roles;
 import com.backendev.userservice.entity.Users;
-import com.backendev.userservice.repository.AuditLogRepository;
 import com.backendev.userservice.repository.UsersRepository;
 import com.backendev.userservice.security.AppUserDetails;
-import com.backendev.userservice.service.AuditService;
 import com.backendev.userservice.service.LoginService;
 import com.backendev.userservice.service.UsersService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -55,18 +53,12 @@ class UsersControllerIntegrationTest {
     private LoginService loginService;
 
     @Autowired
-    private AuditService auditService;
-
-    @Autowired
     private UsersRepository usersRepository;
-
-    @Autowired
-    private AuditLogRepository auditRepository;
 
     @Mock
     private AuthenticationManager authenticationManager;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private static final String BASE_URL = "/api/v1/users";
 
     @BeforeEach
