@@ -2,54 +2,37 @@ package com.backendev.userservice.integration.repository;
 
 import com.backendev.userservice.entity.Roles;
 import com.backendev.userservice.repository.RolesRepository;
-import com.backendev.userservice.repository.UsersRepository;
-import jakarta.persistence.EntityManager;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-@Transactional
-class RolesRepositoryIntegrationTest {
 
-    @Autowired
-    private RolesRepository rolesRepository;
-
-    @Autowired
-    private UsersRepository userRepository;
-
-    @Autowired
-    private EntityManager entityManager;
-
-    @BeforeEach
-    void setUp() {
-        // Delete users first (foreign key constraint)
-        userRepository.deleteAll();
-        rolesRepository.deleteAll();
-        entityManager.flush();
-    }
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+class RolesRepositoryIntegrationTest {@Autowired
+private RolesRepository rolesRepository;
 
     @Test
-    void testFindByName_Success() {
+    void shouldFindRoleByName() {
         Roles role = new Roles();
-        role.setName("ROLE_USER");
+        role.setName("ADMIN");
         rolesRepository.save(role);
 
-        Optional<Roles> foundRole = rolesRepository.findByName("ROLE_USER");
+        Optional<Roles> found = rolesRepository.findByName("ADMIN");
 
-        assertThat(foundRole).isPresent();
-        assertThat(foundRole.get().getName()).isEqualTo("ROLE_USER");
+        assertThat(found).isPresent();
+        assertThat(found.get().getName()).isEqualTo("ADMIN");
     }
 
     @Test
-    void testFindByName_NotFound() {
-        Optional<Roles> foundRole = rolesRepository.findByName("ROLE_NONEXISTENT");
-        assertThat(foundRole).isEmpty();
+    void shouldReturnEmptyIfRoleNotFound() {
+        Optional<Roles> result = rolesRepository.findByName("UNKNOWN");
+        assertThat(result).isNotPresent();
     }
+
 }

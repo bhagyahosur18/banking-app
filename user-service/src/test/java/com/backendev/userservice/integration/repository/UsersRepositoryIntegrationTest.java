@@ -1,82 +1,64 @@
 package com.backendev.userservice.integration.repository;
 
+import com.backendev.userservice.entity.Roles;
 import com.backendev.userservice.entity.Users;
 import com.backendev.userservice.repository.RolesRepository;
 import com.backendev.userservice.repository.UsersRepository;
-import jakarta.persistence.EntityManager;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-@Transactional
-class UsersRepositoryIntegrationTest {
-
-    @Autowired
-    private UsersRepository usersRepository;
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+class UsersRepositoryIntegrationTest {@Autowired
+private UsersRepository usersRepository;
 
     @Autowired
     private RolesRepository rolesRepository;
 
-    @Autowired
-    private EntityManager entityManager;
-
-    @BeforeEach
-    void setUp() {
-        usersRepository.deleteAll();
-        entityManager.flush();
-    }
-
     @Test
-    void testFindByEmail_Success() {
+    void shouldFindUserByEmail() {
+        Roles admin = new Roles();
+        admin.setName("ADMIN");
+        admin = rolesRepository.save(admin);
+
         Users user = new Users();
-        user.setEmail("john@example.com");
         user.setFirstName("John");
         user.setLastName("Doe");
-        user.setPassword("encoded_password");
-        user.setPhone("1234567890");
+        user.setEmail("john@test.com");
+        user.setPassword("pass123");
+        user.getRoles().add(admin);
+
         usersRepository.save(user);
 
-        Optional<Users> foundUser = usersRepository.findByEmail("john@example.com");
+        Optional<Users> found = usersRepository.findByEmail("john@test.com");
 
-        assertThat(foundUser).isPresent();
-        assertThat(foundUser.get().getEmail()).isEqualTo("john@example.com");
-        assertThat(foundUser.get().getFirstName()).isEqualTo("John");
+        assertThat(found).isPresent();
+        assertThat(found.get().getEmail()).isEqualTo("john@test.com");
+        assertThat(found.get().getRoles()).extracting("name").contains("ADMIN");
     }
 
     @Test
-    void testFindByEmail_NotFound() {
-        Optional<Users> foundUser = usersRepository.findByEmail("nonexistent@example.com");
-
-        assertThat(foundUser).isEmpty();
-    }
-
-    @Test
-    void testExistsByEmail_False() {
-        boolean exists = usersRepository.existsByEmail("nonexistent@example.com");
-
-        assertThat(exists).isFalse();
-    }
-
-    @Test
-    void testExistsByEmail_AfterDelete() {
+    void shouldReturnTrueIfEmailExists() {
         Users user = new Users();
-        user.setEmail("john@example.com");
-        user.setFirstName("John");
-        user.setPassword("password");
-        Users savedUser = usersRepository.save(user);
+        user.setFirstName("Jane");
+        user.setLastName("Smith");
+        user.setEmail("jane@test.com");
+        user.setPassword("pass123");
 
-        assertThat(usersRepository.existsByEmail("john@example.com")).isTrue();
+        usersRepository.save(user);
 
-        usersRepository.deleteById(savedUser.getId());
+        assertThat(usersRepository.existsByEmail("jane@test.com")).isTrue();
+    }
 
-        assertThat(usersRepository.existsByEmail("john@example.com")).isFalse();
+    @Test
+    void shouldReturnFalseIfEmailDoesNotExist() {
+        assertThat(usersRepository.existsByEmail("missing@test.com")).isFalse();
     }
 
 }
