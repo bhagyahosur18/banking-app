@@ -36,16 +36,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<HttpErrorResponse> handleBadCredentialsException(BadCredentialsException exception) {
-        HttpErrorResponse httpErrorResponse = new HttpErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpErrorResponse httpErrorResponse = new HttpErrorResponse(HttpStatus.UNAUTHORIZED,
                 exception.getMessage(), "Bad credentials.");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(httpErrorResponse);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(httpErrorResponse);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<HttpErrorResponse> handleAccessDeniedException(AccessDeniedException exception) {
-        HttpErrorResponse httpErrorResponse = new HttpErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpErrorResponse httpErrorResponse = new HttpErrorResponse(HttpStatus.FORBIDDEN,
                 exception.getMessage(), "Access denied.");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(httpErrorResponse);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(httpErrorResponse);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
