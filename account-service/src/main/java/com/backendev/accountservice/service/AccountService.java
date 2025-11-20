@@ -84,9 +84,6 @@ public class AccountService {
     }
 
     public List<AccountDetailsDto> fetchAccountsForUser(String userId) {
-        if(!accountRepository.existsByUserId(userId)){
-            throw new AccountNotFoundException("Account not found for the user id: "+ userId);
-        }
         List<Account> userAccounts = accountRepository.findByUserId(userId);
         return accountMapper.toAccountDetailsDto(userAccounts);
     }

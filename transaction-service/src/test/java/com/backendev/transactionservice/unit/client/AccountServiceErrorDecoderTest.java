@@ -1,5 +1,6 @@
-package com.backendev.transactionservice.client;
+package com.backendev.transactionservice.unit.client;
 
+import com.backendev.transactionservice.client.AccountServiceErrorDecoder;
 import com.backendev.transactionservice.exception.InvalidAccountException;
 import com.backendev.transactionservice.exception.ServiceUnavailableException;
 import feign.Request;

@@ -1,5 +1,6 @@
-package com.backendev.accountservice.jwt;
+package com.backendev.accountservice.unit.jwt;
 
+import com.backendev.accountservice.jwt.PublicEndpointMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

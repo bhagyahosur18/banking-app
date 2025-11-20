@@ -1,4 +1,4 @@
-package com.backendev.accountservice.service;
+package com.backendev.accountservice.unit.service;
 
 import com.backendev.accountservice.dto.AccountDetailsDto;
 import com.backendev.accountservice.dto.AccountDto;
@@ -15,6 +15,7 @@ import com.backendev.accountservice.exception.AccountNotFoundException;
 import com.backendev.accountservice.exception.InactiveAccountException;
 import com.backendev.accountservice.mapper.AccountMapper;
 import com.backendev.accountservice.repository.AccountRepository;
+import com.backendev.accountservice.service.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -173,7 +174,6 @@ class AccountServiceTest {
             List<Account> accounts = List.of(account);
             List<AccountDetailsDto> expectedDtos = List.of(new AccountDetailsDto());
 
-            when(accountRepository.existsByUserId(userId)).thenReturn(true);
             when(accountRepository.findByUserId(userId)).thenReturn(accounts);
             when(accountMapper.toAccountDetailsDto(accounts)).thenReturn(expectedDtos);
 
@@ -182,13 +182,6 @@ class AccountServiceTest {
             assertNotNull(result);
             assertEquals(1, result.size());
             assertEquals(expectedDtos, result);
-        }
-
-        @Test
-        void shouldThrowException_whenNoAccountsForUser() {
-            when(accountRepository.existsByUserId(userId)).thenReturn(false);
-
-            assertThrows(AccountNotFoundException.class, () -> accountService.fetchAccountsForUser(userId));
         }
     }
 

@@ -1,5 +1,6 @@
-package com.backendev.accountservice.controller;
+package com.backendev.accountservice.unit.controller;
 
+import com.backendev.accountservice.controller.AccountController;
 import com.backendev.accountservice.dto.AccountDetailsDto;
 import com.backendev.accountservice.dto.AccountDto;
 import com.backendev.accountservice.dto.AccountResponse;
