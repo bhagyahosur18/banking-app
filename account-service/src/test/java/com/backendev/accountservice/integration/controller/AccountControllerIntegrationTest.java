@@ -12,6 +12,7 @@ import com.backendev.accountservice.service.AccountService;
 import com.backendev.accountservice.service.SecurityService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +60,7 @@ class AccountControllerIntegrationTest {
     @Mock
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private static final String BASE_URL = "/api/v1/accounts";
     private static final String USER_ID = "user-123";
 
@@ -70,274 +71,251 @@ class AccountControllerIntegrationTest {
         when(securityService.getCurrentUserId()).thenReturn(USER_ID);
     }
 
-    // ==================== CREATE ACCOUNT TESTS ====================
+    @Nested
+    class CreateAccountTests {
+        @Test
+        void testCreateAccount_Success() throws Exception {
+            CreateAccountRequest request = new CreateAccountRequest();
+            request.setAccountType(AccountType.SAVINGS);
+            request.setAccountName("My Savings Account");
 
-    @Test
-    void testCreateAccount_Success() throws Exception {
-        // Arrange
-        CreateAccountRequest request = new CreateAccountRequest();
-        request.setAccountType(AccountType.SAVINGS);
-        request.setAccountName("My Savings Account");
+            mockMvc.perform(post(BASE_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.type").value("SAVINGS"))
+                    .andExpect(jsonPath("$.accountName").value("My Savings Account"))
+                    .andExpect(jsonPath("$.userId").value(USER_ID));
 
-        // Act & Assert
-        mockMvc.perform(post(BASE_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.type").value("SAVINGS"))
-                .andExpect(jsonPath("$.accountName").value("My Savings Account"))
-                .andExpect(jsonPath("$.userId").value(USER_ID));
+            // Verify account saved in database
+            var accounts = accountRepository.findAll();
+            assertThat(accounts).isNotEmpty();
+        }
 
-        // Verify account saved in database
-        var accounts = accountRepository.findAll();
-        assertThat(accounts).isNotEmpty();
+        @Test
+        void testCreateAccount_WithoutAccountName() throws Exception {
+            CreateAccountRequest request = new CreateAccountRequest();
+            request.setAccountType(AccountType.CHECKING);
+
+            mockMvc.perform(post(BASE_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        void testCreateAccount_InvalidAccountType() throws Exception {
+            CreateAccountRequest request = new CreateAccountRequest();
+            request.setAccountType(null);  // Invalid
+            request.setAccountName("Test");
+
+            mockMvc.perform(post(BASE_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
     }
 
-    @Test
-    void testCreateAccount_WithoutAccountName() throws Exception {
-        // Arrange
-        CreateAccountRequest request = new CreateAccountRequest();
-        request.setAccountType(AccountType.CHECKING);
+    @Nested
+    class FetchAccountDetailsTests {
+        @Test
+        void testFetchMyAccountDetails_Success() throws Exception {
+            CreateAccountRequest createRequest = new CreateAccountRequest();
+            createRequest.setAccountType(AccountType.SAVINGS);
+            createRequest.setAccountName("My Account");
 
-        // Act & Assert
-        mockMvc.perform(post(BASE_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
+            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+            Long accountNumber = createdAccount.getAccountNumber();
+
+            mockMvc.perform(get(BASE_URL + "/me/" + accountNumber))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.accountNumber").value(accountNumber))
+                    .andExpect(jsonPath("$.userId").value(USER_ID));
+        }
+
+        @Test
+        void testFetchMyAccountDetails_AccountNotFound() throws Exception {
+            mockMvc.perform(get(BASE_URL + "/me/99999"))
+                    .andExpect(status().isNotFound());
+        }
     }
 
-    @Test
-    void testCreateAccount_InvalidAccountType() throws Exception {
-        // Arrange
-        CreateAccountRequest request = new CreateAccountRequest();
-        request.setAccountType(null);  // Invalid
-        request.setAccountName("Test");
+    @Nested
+    class FetchAccountForTransactionService {
+        @Test
+        void testFetchAccountDetails_Success() throws Exception {
+            CreateAccountRequest createRequest = new CreateAccountRequest();
+            createRequest.setAccountType(AccountType.CHECKING);
+            createRequest.setAccountName("Checking Account");
 
-        // Act & Assert
-        mockMvc.perform(post(BASE_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-    }
-    // ==================== FETCH ACCOUNT DETAILS TESTS ====================
+            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+            Long accountNumber = createdAccount.getAccountNumber();
 
-    @Test
-    void testFetchMyAccountDetails_Success() throws Exception {
-        // Arrange
-        CreateAccountRequest createRequest = new CreateAccountRequest();
-        createRequest.setAccountType(AccountType.SAVINGS);
-        createRequest.setAccountName("My Account");
+            mockMvc.perform(get(BASE_URL + "/" + accountNumber))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.accountNumber").value(accountNumber));
+        }
 
-        AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
-        Long accountNumber = createdAccount.getAccountNumber();
+        @Test
+        @WithMockUser(username = "other-user", roles = "USER")
+        void testFetchAccountDetails_AccessDenied() throws Exception {
+            String otherUserId = "other-user-456";
+            reset(securityService);
+            when(securityService.getCurrentUserId()).thenReturn(otherUserId);
 
-        // Act & Assert
-        mockMvc.perform(get(BASE_URL + "/me/" + accountNumber))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accountNumber").value(accountNumber))
-                .andExpect(jsonPath("$.userId").value(USER_ID));
-    }
+            CreateAccountRequest createRequest = new CreateAccountRequest();
+            createRequest.setAccountType(AccountType.SAVINGS);
+            createRequest.setAccountName("User Account");
 
-    @Test
-    void testFetchMyAccountDetails_AccountNotFound() throws Exception {
-        // Act & Assert
-        mockMvc.perform(get(BASE_URL + "/me/99999"))
-                .andExpect(status().isNotFound());
+            accountService.createAccount(USER_ID, createRequest);
+            var accounts = accountRepository.findAll();
+            Long accountNumber = accounts.get(0).getAccountNumber();
+
+            mockMvc.perform(get(BASE_URL + "/" + accountNumber))
+                    .andExpect(status().isForbidden());
+        }
     }
 
-    // ==================== FETCH ACCOUNT FOR TRANSACTION SERVICE TESTS ====================
+    @Nested
+    class ValidateAccountsForTransfer {
+        @Test
+        void testValidateAccountsForTransfer_Success() throws Exception {
+            CreateAccountRequest request = new CreateAccountRequest();
+            request.setAccountType(AccountType.SAVINGS);
+            request.setAccountName("From Account");
 
-    @Test
-    void testFetchAccountDetails_Success() throws Exception {
-        // Arrange
-        CreateAccountRequest createRequest = new CreateAccountRequest();
-        createRequest.setAccountType(AccountType.CHECKING);
-        createRequest.setAccountName("Checking Account");
+            AccountDto fromAccount = accountService.createAccount(USER_ID, request);
 
-        AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
-        Long accountNumber = createdAccount.getAccountNumber();
+            request.setAccountName("To Account");
+            AccountDto toAccount = accountService.createAccount(USER_ID, request);
 
-        // Act & Assert
-        mockMvc.perform(get(BASE_URL + "/" + accountNumber))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accountNumber").value(accountNumber));
+            mockMvc.perform(get(BASE_URL + "/validate-transfer")
+                            .param("fromAccountNumber", fromAccount.getAccountNumber().toString())
+                            .param("toAccountNumber", toAccount.getAccountNumber().toString())
+                            .param("userId", USER_ID))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.fromAccount").exists())
+                    .andExpect(jsonPath("$.toAccount").exists());
+        }
     }
 
-    @Test
-    @WithMockUser(username = "other-user", roles = "USER")
-    void testFetchAccountDetails_AccessDenied() throws Exception {
-        // Arrange
-        String otherUserId = "other-user-456";
-        reset(securityService);
-        when(securityService.getCurrentUserId()).thenReturn(otherUserId);
+    @Nested
+    class UpdateAccountBalance {
+        @Test
+        void testUpdateAccountBalance_Success() throws Exception {
+            CreateAccountRequest createRequest = new CreateAccountRequest();
+            createRequest.setAccountType(AccountType.SAVINGS);
+            createRequest.setAccountName("Savings Account");
 
-        // Create account for USER_ID
-        CreateAccountRequest createRequest = new CreateAccountRequest();
-        createRequest.setAccountType(AccountType.SAVINGS);
-        createRequest.setAccountName("User Account");
+            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
 
-        accountService.createAccount(USER_ID, createRequest);
-        var accounts = accountRepository.findAll();
-        Long accountNumber = accounts.get(0).getAccountNumber();
+            UpdateAccountBalanceRequest updateRequest = new UpdateAccountBalanceRequest();
+            updateRequest.setAccountNumber(createdAccount.getAccountNumber());
+            updateRequest.setBalance(BigDecimal.valueOf(5000.00));
 
-        // Act & Assert - Different user tries to access
-        mockMvc.perform(get(BASE_URL + "/" + accountNumber))
-                .andExpect(status().isForbidden());
+            mockMvc.perform(put(BASE_URL + "/" + createdAccount.getAccountNumber())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(updateRequest)))
+                    .andExpect(status().isOk());
+
+            var accounts = accountRepository.findAll();
+            assertThat(accounts.get(0).getBalance()).isEqualTo(BigDecimal.valueOf(5000.00));
+        }
     }
 
-    // ==================== VALIDATE TRANSFER TESTS ====================
+    @Nested
+    class FetchAccountForUser {
+        @Test
+        void testFetchAccountsForUser_Success() throws Exception {
+            CreateAccountRequest request1 = new CreateAccountRequest();
+            request1.setAccountType(AccountType.SAVINGS);
+            request1.setAccountName("Savings");
+            accountService.createAccount(USER_ID, request1);
 
-    @Test
-    void testValidateAccountsForTransfer_Success() throws Exception {
-        // Arrange
-        CreateAccountRequest request = new CreateAccountRequest();
-        request.setAccountType(AccountType.SAVINGS);
-        request.setAccountName("From Account");
+            CreateAccountRequest request2 = new CreateAccountRequest();
+            request2.setAccountType(AccountType.CHECKING);
+            request2.setAccountName("Checking");
+            accountService.createAccount(USER_ID, request2);
 
-        AccountDto fromAccount = accountService.createAccount(USER_ID, request);
+            mockMvc.perform(get(BASE_URL + "/me"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(2)));
+        }
 
-        request.setAccountName("To Account");
-        AccountDto toAccount = accountService.createAccount(USER_ID, request);
-
-        // Act & Assert
-        mockMvc.perform(get(BASE_URL + "/validate-transfer")
-                        .param("fromAccountNumber", fromAccount.getAccountNumber().toString())
-                        .param("toAccountNumber", toAccount.getAccountNumber().toString())
-                        .param("userId", USER_ID))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fromAccount").exists())
-                .andExpect(jsonPath("$.toAccount").exists());
+        @Test
+        void testFetchAccountsForUser_NoAccounts() throws Exception {
+            mockMvc.perform(get(BASE_URL + "/me"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(0)));
+        }
     }
 
-    // ==================== UPDATE ACCOUNT BALANCE TESTS ====================
+    @Nested
+    class DeleteAccount{
+        @Test
+        @WithMockUser(username = "admin", roles = "ADMIN")
+        void testDeleteAccount_Success() throws Exception {
+            reset(securityService);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
 
-    @Test
-    void testUpdateAccountBalance_Success() throws Exception {
-        // Arrange
-        CreateAccountRequest createRequest = new CreateAccountRequest();
-        createRequest.setAccountType(AccountType.SAVINGS);
-        createRequest.setAccountName("Savings Account");
+            CreateAccountRequest createRequest = new CreateAccountRequest();
+            createRequest.setAccountType(AccountType.SAVINGS);
+            createRequest.setAccountName("Account to Delete");
 
-        AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
 
-        UpdateAccountBalanceRequest updateRequest = new UpdateAccountBalanceRequest();
-        updateRequest.setAccountNumber(createdAccount.getAccountNumber());
-        updateRequest.setBalance(BigDecimal.valueOf(5000.00));
+            mockMvc.perform(delete(BASE_URL + "/" + createdAccount.getAccountNumber()))
+                    .andExpect(status().isOk());
 
-        // Act & Assert
-        mockMvc.perform(put(BASE_URL + "/" + createdAccount.getAccountNumber())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isOk());
+            var accounts = accountRepository.findAll();
+            assertThat(accounts).isEmpty();
+        }
 
-        // Verify balance updated in database
-        var accounts = accountRepository.findAll();
-        assertThat(accounts.get(0).getBalance()).isEqualTo(BigDecimal.valueOf(5000.00));
+        @Test
+        void testDeleteAccount_NonAdminForbidden() throws Exception {
+            CreateAccountRequest createRequest = new CreateAccountRequest();
+            createRequest.setAccountType(AccountType.SAVINGS);
+            createRequest.setAccountName("Account");
+
+            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+
+            mockMvc.perform(delete(BASE_URL + "/" + createdAccount.getAccountNumber()))
+                    .andExpect(status().isForbidden());
+        }
     }
 
-    // ==================== FETCH ACCOUNTS FOR USER TESTS ====================
+    @Nested
+    class MarkAccountFrozen{
+        @Test
+        @WithMockUser(username = "admin", roles = "ADMIN")
+        void testMarkAccountFrozen_Success() throws Exception {
+            reset(securityService);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
 
-    @Test
-    void testFetchAccountsForUser_Success() throws Exception {
-        // Arrange
-        CreateAccountRequest request1 = new CreateAccountRequest();
-        request1.setAccountType(AccountType.SAVINGS);
-        request1.setAccountName("Savings");
-        accountService.createAccount(USER_ID, request1);
+            CreateAccountRequest createRequest = new CreateAccountRequest();
+            createRequest.setAccountType(AccountType.SAVINGS);
+            createRequest.setAccountName("Account");
 
-        CreateAccountRequest request2 = new CreateAccountRequest();
-        request2.setAccountType(AccountType.CHECKING);
-        request2.setAccountName("Checking");
-        accountService.createAccount(USER_ID, request2);
+            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
 
-        // Act & Assert
-        mockMvc.perform(get(BASE_URL + "/me"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)));
-    }
+            mockMvc.perform(put(BASE_URL + "/" + createdAccount.getAccountNumber() + "/status"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("FROZEN"));
 
-    @Test
-    void testFetchAccountsForUser_NoAccounts() throws Exception {
-        // Act & Assert
-        mockMvc.perform(get(BASE_URL + "/me"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
-    }
+            var accounts = accountRepository.findAll();
+            assertThat(accounts.get(0).getStatus()).isEqualTo(AccountStatus.FROZEN);
+        }
 
-    // ==================== DELETE ACCOUNT TESTS ====================
+        @Test
+        void testMarkAccountFrozen_NonAdminForbidden() throws Exception {
+            CreateAccountRequest createRequest = new CreateAccountRequest();
+            createRequest.setAccountType(AccountType.SAVINGS);
+            createRequest.setAccountName("Account");
 
-    @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
-    void testDeleteAccount_Success() throws Exception {
-        // Arrange
-        reset(securityService);
-        when(securityService.getCurrentUserId()).thenReturn(USER_ID);
+            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
 
-        CreateAccountRequest createRequest = new CreateAccountRequest();
-        createRequest.setAccountType(AccountType.SAVINGS);
-        createRequest.setAccountName("Account to Delete");
-
-        AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
-
-        // Act & Assert
-        mockMvc.perform(delete(BASE_URL + "/" + createdAccount.getAccountNumber()))
-                .andExpect(status().isOk());
-
-        // Verify deleted from database
-        var accounts = accountRepository.findAll();
-        assertThat(accounts).isEmpty();
-    }
-
-    @Test
-    void testDeleteAccount_NonAdminForbidden() throws Exception {
-        // Arrange
-        CreateAccountRequest createRequest = new CreateAccountRequest();
-        createRequest.setAccountType(AccountType.SAVINGS);
-        createRequest.setAccountName("Account");
-
-        AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
-
-        // Act & Assert - User role cannot delete
-        mockMvc.perform(delete(BASE_URL + "/" + createdAccount.getAccountNumber()))
-                .andExpect(status().isForbidden());
-    }
-
-    // ==================== MARK ACCOUNT FROZEN TESTS ====================
-
-    @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
-    void testMarkAccountFrozen_Success() throws Exception {
-        // Arrange
-        reset(securityService);
-        when(securityService.getCurrentUserId()).thenReturn(USER_ID);
-
-        CreateAccountRequest createRequest = new CreateAccountRequest();
-        createRequest.setAccountType(AccountType.SAVINGS);
-        createRequest.setAccountName("Account");
-
-        AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
-
-        // Act & Assert
-        mockMvc.perform(put(BASE_URL + "/" + createdAccount.getAccountNumber() + "/status"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("FROZEN"));
-
-        // Verify frozen in database
-        var accounts = accountRepository.findAll();
-        assertThat(accounts.get(0).getStatus()).isEqualTo(AccountStatus.FROZEN);
-    }
-
-    @Test
-    void testMarkAccountFrozen_NonAdminForbidden() throws Exception {
-        // Arrange
-        CreateAccountRequest createRequest = new CreateAccountRequest();
-        createRequest.setAccountType(AccountType.SAVINGS);
-        createRequest.setAccountName("Account");
-
-        AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
-
-        // Act & Assert - User role cannot freeze
-        mockMvc.perform(put(BASE_URL + "/" + createdAccount.getAccountNumber() + "/status"))
-                .andExpect(status().isForbidden());
+            mockMvc.perform(put(BASE_URL + "/" + createdAccount.getAccountNumber() + "/status"))
+                    .andExpect(status().isForbidden());
+        }
     }
 }
