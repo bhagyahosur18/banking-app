@@ -1,5 +1,6 @@
-package com.backendev.accountservice.service;
+package com.backendev.accountservice.unit.service;
 
+import com.backendev.accountservice.service.SecurityService;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

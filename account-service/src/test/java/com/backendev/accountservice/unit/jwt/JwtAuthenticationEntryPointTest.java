@@ -1,5 +1,6 @@
-package com.backendev.accountservice.jwt;
+package com.backendev.accountservice.unit.jwt;
 
+import com.backendev.accountservice.jwt.JwtAuthenticationEntryPoint;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;

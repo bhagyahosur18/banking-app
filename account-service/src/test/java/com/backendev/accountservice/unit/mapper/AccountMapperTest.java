@@ -1,4 +1,4 @@
-package com.backendev.accountservice.mapper;
+package com.backendev.accountservice.unit.mapper;
 
 import com.backendev.accountservice.dto.AccountDetailsDto;
 import com.backendev.accountservice.dto.AccountDto;
@@ -6,6 +6,7 @@ import com.backendev.accountservice.dto.CreateAccountRequest;
 import com.backendev.accountservice.entity.Account;
 import com.backendev.accountservice.enums.AccountStatus;
 import com.backendev.accountservice.enums.AccountType;
+import com.backendev.accountservice.mapper.AccountMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -32,15 +33,15 @@ class AccountMapperTest {
         Account account = mapper.toEntity(request);
 
         assertThat(account).isNotNull();
-        assertThat(account.getId()).isNull(); // ignored
-        assertThat(account.getAccountNumber()).isNull(); // ignored
-        assertThat(account.getUserId()).isNull(); // ignored
-        assertThat(account.getBalance()).isEqualByComparingTo(BigDecimal.ZERO); // expression
-        assertThat(account.getStatus()).isEqualTo(AccountStatus.ACTIVE); // constant
-        assertThat(account.getAccountName()).isEqualTo("Savings Account"); // mapped
-        assertThat(account.getType()).isEqualTo(AccountType.SAVINGS); // mapped
-        assertThat(account.getCreatedAt()).isNull(); // ignored
-        assertThat(account.getUpdatedAt()).isNull(); // ignored
+        assertThat(account.getId()).isNull(); 
+        assertThat(account.getAccountNumber()).isNull(); 
+        assertThat(account.getUserId()).isNull(); 
+        assertThat(account.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(account.getStatus()).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(account.getAccountName()).isEqualTo("Savings Account");
+        assertThat(account.getType()).isEqualTo(AccountType.SAVINGS);
+        assertThat(account.getCreatedAt()).isNull(); 
+        assertThat(account.getUpdatedAt()).isNull(); 
     }
 
     @Test

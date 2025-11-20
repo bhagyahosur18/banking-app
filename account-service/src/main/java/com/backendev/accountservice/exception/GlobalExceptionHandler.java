@@ -3,6 +3,7 @@ package com.backendev.accountservice.exception;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -37,6 +38,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(httpErrorResponse);
     }
 
+    @ExceptionHandler(AccountNotFoundException.class)
+    public ResponseEntity<HttpErrorResponse> handleAccountNotFoundException(AccountNotFoundException exception) {
+        HttpErrorResponse httpErrorResponse = new HttpErrorResponse(HttpStatus.NOT_FOUND,
+                exception.getMessage(), "Account not found.");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(httpErrorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<HttpErrorResponse> handleGenericException(Exception exception) {
         HttpErrorResponse httpErrorResponse = new HttpErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -44,6 +52,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(httpErrorResponse);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<HttpErrorResponse> handleAccessDeniedException(AccessDeniedException exception){
+        HttpErrorResponse httpErrorResponse = new HttpErrorResponse(
+                HttpStatus.FORBIDDEN, exception.getMessage(), "You do not have permission to access this resource"
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(httpErrorResponse);
+    }
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<HttpErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()

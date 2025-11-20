@@ -1,6 +1,9 @@
-package com.backendev.accountservice.jwt;
+package com.backendev.accountservice.unit.jwt;
 
 import com.backendev.accountservice.exception.JwtAuthenticationException;
+import com.backendev.accountservice.jwt.JwtAuthenticationFilter;
+import com.backendev.accountservice.jwt.JwtTokenValidator;
+import com.backendev.accountservice.jwt.PublicEndpointMatcher;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -47,7 +50,7 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp(){
-        filter = new JwtAuthenticationFilter(tokenValidator, publicEndpointMatcher);
+        filter = new JwtAuthenticationFilter(tokenValidator, publicEndpointMatcher){};
         stringWriter = new StringWriter();
         SecurityContextHolder.clearContext();
     }
@@ -59,7 +62,7 @@ class JwtAuthenticationFilterTest {
         when(request.getMethod()).thenReturn("GET");
         when(publicEndpointMatcher.isPublicEndpoint("/api/public")).thenReturn(true);
 
-        filter.doFilterInternal(request, response, filterChain);
+        filter.doFilter(request, response, filterChain);
 
         verify(filterChain).doFilter(request, response);
         verifyNoInteractions(tokenValidator, response);
@@ -73,7 +76,7 @@ class JwtAuthenticationFilterTest {
         when(publicEndpointMatcher.isPublicEndpoint("/api/users")).thenReturn(false);
         when(tokenValidator.validateTokenAndCreateAuthentication("valid-token")).thenReturn(authentication);
 
-        filter.doFilterInternal(request, response, filterChain);
+        filter.doFilter(request, response, filterChain);
 
         verify(filterChain).doFilter(request, response);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isEqualTo(authentication);
@@ -89,7 +92,7 @@ class JwtAuthenticationFilterTest {
                 .thenThrow(new JwtAuthenticationException("Invalid"));
         when(response.getWriter()).thenReturn(new PrintWriter(stringWriter));
 
-        filter.doFilterInternal(request, response, filterChain);
+        filter.doFilter(request, response, filterChain);
 
         verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(response).setContentType("application/json");

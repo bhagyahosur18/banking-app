@@ -1,6 +1,7 @@
-package com.backendev.accountservice.jwt;
+package com.backendev.accountservice.unit.jwt;
 
 import com.backendev.accountservice.exception.JwtAuthenticationException;
+import com.backendev.accountservice.jwt.JwtTokenValidator;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
