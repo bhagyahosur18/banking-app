@@ -73,6 +73,7 @@ class AccountControllerIntegrationTest {
 
     @Nested
     class CreateAccountTests {
+
         @Test
         void testCreateAccount_Success() throws Exception {
             CreateAccountRequest request = new CreateAccountRequest();
@@ -118,6 +119,7 @@ class AccountControllerIntegrationTest {
 
     @Nested
     class FetchAccountDetailsTests {
+
         @Test
         void testFetchMyAccountDetails_Success() throws Exception {
             CreateAccountRequest createRequest = new CreateAccountRequest();
@@ -178,6 +180,7 @@ class AccountControllerIntegrationTest {
 
     @Nested
     class ValidateAccountsForTransfer {
+
         @Test
         void testValidateAccountsForTransfer_Success() throws Exception {
             CreateAccountRequest request = new CreateAccountRequest();
@@ -201,6 +204,7 @@ class AccountControllerIntegrationTest {
 
     @Nested
     class UpdateAccountBalance {
+
         @Test
         void testUpdateAccountBalance_Success() throws Exception {
             CreateAccountRequest createRequest = new CreateAccountRequest();
@@ -225,6 +229,7 @@ class AccountControllerIntegrationTest {
 
     @Nested
     class FetchAccountForUser {
+
         @Test
         void testFetchAccountsForUser_Success() throws Exception {
             CreateAccountRequest request1 = new CreateAccountRequest();
@@ -252,6 +257,7 @@ class AccountControllerIntegrationTest {
 
     @Nested
     class DeleteAccount{
+
         @Test
         @WithMockUser(username = "admin", roles = "ADMIN")
         void testDeleteAccount_Success() throws Exception {
@@ -286,6 +292,7 @@ class AccountControllerIntegrationTest {
 
     @Nested
     class MarkAccountFrozen{
+
         @Test
         @WithMockUser(username = "admin", roles = "ADMIN")
         void testMarkAccountFrozen_Success() throws Exception {
