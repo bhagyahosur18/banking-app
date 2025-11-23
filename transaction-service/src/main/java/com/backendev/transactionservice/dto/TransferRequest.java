@@ -1,5 +1,6 @@
 package com.backendev.transactionservice.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -25,4 +26,10 @@ public class TransferRequest {
 
     @NotNull(message = "Please provide description")
     private String description;
+
+    @AssertTrue(message = "From account and To account cannot be the same")
+    private boolean isValidTransfer() {
+        return fromAccountNumber == null || toAccountNumber == null ||
+                !fromAccountNumber.equals(toAccountNumber);
+    }
 }

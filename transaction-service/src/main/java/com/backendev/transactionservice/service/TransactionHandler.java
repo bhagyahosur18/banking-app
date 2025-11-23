@@ -38,43 +38,34 @@ public class TransactionHandler {
 
         Transaction transaction = transactionProcessor.createAndSaveTransaction(request, type);
 
-        try {
-            BigDecimal newBalance = operation.processBalanceChange();
-            TransactionResponse response = transactionProcessor.completeTransaction(transaction, newBalance);
 
-            //Sync after transaction commits
-            transactionProcessor.syncBalanceToAccountService(request.getAccountNumber(), newBalance);
+        BigDecimal newBalance = operation.processBalanceChange();
+        TransactionResponse response = transactionProcessor.completeTransaction(transaction, newBalance);
 
-            return response;
-        } catch (Exception e) {
-            String errorMessage = type == TransactionType.DEPOSIT ? "Deposit failed" : "Withdrawal failed";
-            return transactionProcessor.failTransaction(transaction, errorMessage, e);
-        }
+        //Sync after transaction commits
+        transactionProcessor.syncBalanceToAccountService(request.getAccountNumber(), newBalance);
+
+        return response;
     }
 
     @Transactional(rollbackFor = Exception.class)
     public TransactionResponse processTransferTransaction(TransferRequest request) {
         Transaction transaction = transactionProcessor.createAndSaveTransaction(request, TransactionType.TRANSFER);
 
-        try {
-            balanceManager.validateSufficientFunds(request.getFromAccountNumber(), request.getAmount());
-            balanceManager.updateAccountBalance(request.getFromAccountNumber(), request.getAmount().negate());
-            balanceManager.updateAccountBalance(request.getToAccountNumber(), request.getAmount());
+        balanceManager.validateSufficientFunds(request.getFromAccountNumber(), request.getAmount());
+        balanceManager.updateAccountBalance(request.getFromAccountNumber(), request.getAmount().negate());
+        balanceManager.updateAccountBalance(request.getToAccountNumber(), request.getAmount());
 
-            BigDecimal fromBalance = balanceManager.getBalance(request.getFromAccountNumber());
-            BigDecimal toBalance = balanceManager.getBalance(request.getToAccountNumber());
+        BigDecimal fromBalance = balanceManager.getBalance(request.getFromAccountNumber());
+        BigDecimal toBalance = balanceManager.getBalance(request.getToAccountNumber());
 
-            TransactionResponse response = transactionProcessor.completeTransaction(transaction, fromBalance);
+        TransactionResponse response = transactionProcessor.completeTransaction(transaction, fromBalance);
 
-            // Sync both accounts after transaction commits
-            transactionProcessor.syncBalanceToAccountService(request.getFromAccountNumber(), fromBalance);
-            transactionProcessor.syncBalanceToAccountService(request.getToAccountNumber(), toBalance);
+        // Sync both accounts after transaction commits
+        transactionProcessor.syncBalanceToAccountService(request.getFromAccountNumber(), fromBalance);
+        transactionProcessor.syncBalanceToAccountService(request.getToAccountNumber(), toBalance);
 
-            return response;
-
-        } catch (InsufficientFundsException | InvalidAccountException | TransactionProcessingException e) {
-            return transactionProcessor.failTransaction(transaction, "Transfer failed", e);
-        }
+        return response;
     }
 
     @FunctionalInterface

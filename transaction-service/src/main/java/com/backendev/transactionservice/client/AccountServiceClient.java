@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "account-service", configuration = FeignConfig.class  )
+@FeignClient(name = "account-service", configuration = FeignConfig.class, primary = false)
 public interface AccountServiceClient {
 
     @GetMapping("/api/v1/accounts/{accountNumber}")

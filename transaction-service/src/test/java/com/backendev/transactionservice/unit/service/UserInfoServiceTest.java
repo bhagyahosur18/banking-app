@@ -1,5 +1,6 @@
-package com.backendev.transactionservice.service;
+package com.backendev.transactionservice.unit.service;
 
+import com.backendev.transactionservice.service.UserInfoService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

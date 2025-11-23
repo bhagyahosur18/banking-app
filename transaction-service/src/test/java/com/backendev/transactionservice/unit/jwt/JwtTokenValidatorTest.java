@@ -1,6 +1,7 @@
-package com.backendev.transactionservice.jwt;
+package com.backendev.transactionservice.unit.jwt;
 
 import com.backendev.transactionservice.exception.JwtAuthenticationException;
+import com.backendev.transactionservice.jwt.JwtTokenValidator;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

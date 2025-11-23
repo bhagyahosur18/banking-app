@@ -1,9 +1,10 @@
-package com.backendev.transactionservice.service;
+package com.backendev.transactionservice.unit.service;
 
 import com.backendev.transactionservice.client.AccountServiceClient;
 import com.backendev.transactionservice.dto.AccountResponse;
 import com.backendev.transactionservice.dto.UpdateAccountBalanceRequest;
 import com.backendev.transactionservice.exception.InvalidAccountException;
+import com.backendev.transactionservice.service.AccountService;
 import feign.FeignException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
