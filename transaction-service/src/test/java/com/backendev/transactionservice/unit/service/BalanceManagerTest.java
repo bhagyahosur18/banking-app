@@ -1,9 +1,10 @@
-package com.backendev.transactionservice.service;
+package com.backendev.transactionservice.unit.service;
 
 import com.backendev.transactionservice.entity.AccountBalance;
 import com.backendev.transactionservice.exception.InsufficientFundsException;
 import com.backendev.transactionservice.mapper.AccountBalanceMapper;
 import com.backendev.transactionservice.repository.AccountBalanceRepository;
+import com.backendev.transactionservice.service.BalanceManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

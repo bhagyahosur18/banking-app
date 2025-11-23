@@ -1,6 +1,9 @@
-package com.backendev.transactionservice.jwt;
+package com.backendev.transactionservice.unit.jwt;
 
 import com.backendev.transactionservice.exception.JwtAuthenticationException;
+import com.backendev.transactionservice.jwt.JwtAuthenticationFilter;
+import com.backendev.transactionservice.jwt.JwtTokenValidator;
+import com.backendev.transactionservice.jwt.PublicEndpointMatcher;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -58,7 +61,7 @@ class JwtAuthenticationFilterTest {
         when(request.getMethod()).thenReturn("GET");
         when(publicEndpointMatcher.isPublicEndpoint("/api/public")).thenReturn(true);
 
-        filter.doFilterInternal(request, response, filterChain);
+        filter.doFilter(request, response, filterChain);
 
         verify(filterChain).doFilter(request, response);
         verifyNoInteractions(tokenValidator, response);
@@ -72,7 +75,7 @@ class JwtAuthenticationFilterTest {
         when(publicEndpointMatcher.isPublicEndpoint("/api/users")).thenReturn(false);
         when(tokenValidator.validateTokenAndCreateAuthentication("valid-token")).thenReturn(authentication);
 
-        filter.doFilterInternal(request, response, filterChain);
+        filter.doFilter(request, response, filterChain);
 
         verify(filterChain).doFilter(request, response);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isEqualTo(authentication);
@@ -88,7 +91,7 @@ class JwtAuthenticationFilterTest {
                 .thenThrow(new JwtAuthenticationException("Invalid"));
         when(response.getWriter()).thenReturn(new PrintWriter(stringWriter));
 
-        filter.doFilterInternal(request, response, filterChain);
+        filter.doFilter(request, response, filterChain);
 
         verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(response).setContentType("application/json");

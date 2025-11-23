@@ -1,4 +1,4 @@
-package com.backendev.transactionservice.service;
+package com.backendev.transactionservice.unit.service;
 
 import com.backendev.transactionservice.dto.TransactionRequest;
 import com.backendev.transactionservice.dto.TransactionResponse;
@@ -10,6 +10,8 @@ import com.backendev.transactionservice.exception.InsufficientFundsException;
 import com.backendev.transactionservice.exception.TransactionProcessingException;
 import com.backendev.transactionservice.mapper.TransactionMapper;
 import com.backendev.transactionservice.repository.TransactionRepository;
+import com.backendev.transactionservice.service.AccountService;
+import com.backendev.transactionservice.service.TransactionProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,5 +1,6 @@
-package com.backendev.transactionservice.jwt;
+package com.backendev.transactionservice.unit.jwt;
 
+import com.backendev.transactionservice.jwt.PublicEndpointMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

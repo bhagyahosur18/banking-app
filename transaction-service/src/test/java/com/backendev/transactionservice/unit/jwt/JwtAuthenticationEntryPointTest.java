@@ -1,5 +1,6 @@
-package com.backendev.transactionservice.jwt;
+package com.backendev.transactionservice.unit.jwt;
 
+import com.backendev.transactionservice.jwt.JwtAuthenticationEntryPoint;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
