@@ -1,5 +1,6 @@
-package com.backendev.transactionservice.controller;
+package com.backendev.transactionservice.unit.controller;
 
+import com.backendev.transactionservice.controller.TransactionController;
 import com.backendev.transactionservice.dto.AccountBalanceInfo;
 import com.backendev.transactionservice.dto.TransactionInfo;
 import com.backendev.transactionservice.dto.TransactionRequest;
