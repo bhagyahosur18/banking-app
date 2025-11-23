@@ -1,4 +1,4 @@
-package com.backendev.transactionservice.service;
+package com.backendev.transactionservice.unit.service;
 
 import com.backendev.transactionservice.dto.AccountBalanceInfo;
 import com.backendev.transactionservice.dto.TransactionInfo;
@@ -14,6 +14,11 @@ import com.backendev.transactionservice.mapper.AccountBalanceMapper;
 import com.backendev.transactionservice.mapper.TransactionMapper;
 import com.backendev.transactionservice.repository.AccountBalanceRepository;
 import com.backendev.transactionservice.repository.TransactionRepository;
+import com.backendev.transactionservice.service.AccountService;
+import com.backendev.transactionservice.service.BalanceManager;
+import com.backendev.transactionservice.service.TransactionHandler;
+import com.backendev.transactionservice.service.TransactionService;
+import com.backendev.transactionservice.service.UserInfoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
