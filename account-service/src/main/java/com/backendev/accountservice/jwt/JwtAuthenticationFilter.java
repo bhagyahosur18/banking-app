@@ -15,7 +15,7 @@ import java.io.IOException;
 
 @Component
 @Slf4j
-public abstract class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String AUTHORIZATION_HEADER = "Authorization";
