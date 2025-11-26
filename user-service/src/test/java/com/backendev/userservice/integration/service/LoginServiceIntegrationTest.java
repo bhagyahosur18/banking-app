@@ -22,6 +22,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @Transactional
+@ActiveProfiles("test")
 class LoginServiceIntegrationTest {
 
     @Mock
