@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-class TransactionRepositoryIntegrationTest {
+class TransactionRepositoryIT {
 
     @Autowired
     private TransactionRepository repository;
