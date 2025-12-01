@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
-class AuditServiceIntegrationTest {
+class AuditServiceIT {
 
     @Autowired
     private AuditService auditService;

@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
-class LoginServiceIntegrationTest {
+class LoginServiceIT {
 
     @Mock
     private AuthenticationManager authenticationManager;
