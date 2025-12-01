@@ -55,20 +55,23 @@ jobs:
       - name: Build and push Docker image - User Service
         uses: docker/build-push-action@v5
         with:
-          context: ./user-service
+          context: .
+          file: ./user-service/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/user-service:latest,${{ secrets.DOCKER_USERNAME }}/user-service:${{ github.sha }}
 
       - name: Build and push Docker image - Account Service
         uses: docker/build-push-action@v5
         with:
-          context: ./account-service
+          context: .
+          file: ./account-service/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/account-service:latest,${{ secrets.DOCKER_USERNAME }}/account-service:${{ github.sha }}
 
       - name: Build and push Docker image - Transaction Service
         uses: docker/build-push-action@v5
         with:
-          context: ./transaction-service
+          context: .
+          file: ./transaction-service/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/transaction-service:latest,${{ secrets.DOCKER_USERNAME }}/transaction-service:${{ github.sha }}
