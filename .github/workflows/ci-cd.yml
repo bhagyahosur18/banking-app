@@ -34,13 +34,6 @@ jobs:
           name: test-results
           path: '**/target/surefire-reports/'
 
-      - name: Publish test report
-        if: always()
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: '**/target/surefire-reports/TEST-*.xml'
-          check_name: Test Results
-
   build-docker-image:
     needs: build-and-test
     runs-on: ubuntu-latest
