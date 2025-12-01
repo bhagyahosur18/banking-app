@@ -24,7 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class BalanceManagerIntegrationTest {
+class BalanceManagerIT {
 
     @Mock
     private AccountBalanceRepository accountBalanceRepository;

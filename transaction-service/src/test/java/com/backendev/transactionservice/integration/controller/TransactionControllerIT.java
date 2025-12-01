@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Import({TestSecurityConfig.class, TestFeignConfig.class})
 @ActiveProfiles("test")
-class TransactionControllerIntegrationTest {
+class TransactionControllerIT {
 
     @Autowired
     private MockMvc mockMvc;
