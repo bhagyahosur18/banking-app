@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Transactional
 @Import(TestSecurityConfig.class)
 @ActiveProfiles("test")
-class AccountServiceIntegrationTest {
+class AccountServiceIT {
 
     @Autowired
     private AccountService accountService;

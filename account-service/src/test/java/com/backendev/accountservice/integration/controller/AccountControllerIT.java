@@ -45,7 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestSecurityConfig.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @ActiveProfiles("test")
-class AccountControllerIntegrationTest {
+class AccountControllerIT {
 
     @Autowired
     private MockMvc mockMvc;
