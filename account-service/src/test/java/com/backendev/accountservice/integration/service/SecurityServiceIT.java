@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SecurityServiceIntegrationTest {
+class SecurityServiceIT {
 
     private SecurityService securityService;
 
