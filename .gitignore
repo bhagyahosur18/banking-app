@@ -40,3 +40,6 @@ Thumbs.db
 
 # Spring Boot
 *.pid
+
+### env ###
+.env
