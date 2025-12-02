@@ -102,3 +102,12 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/transaction-service:latest
+
+      - name: Build and push Eureka Server image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./eureka-server/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/eureka-server:latest
