@@ -30,17 +30,96 @@ Each service is independently deployable, Dockerized, and registered with Eureka
   Authorization: Bearer <your-jwt-token>
   ```
 
-### Docker setup
-**Build and run the service**
-```bash 
-  docker-compose up --build 
+## CI/CD Pipeline
+
+### Overview
+This project uses **GitHub Actions** for continuous integration and deployment. Every push triggers automated testing, building, and Docker image publishing.
+
+### Workflow
+The CI/CD pipeline is defined in `.github/workflows/ci-cd.yml` and includes:
+
+#### 1. **Build & Test Job** (`build-and-test`)
+Runs on every push to `main` and `develop` branches:
+- Checks out code from GitHub
+- Sets up Java 17 with Maven
+- Builds all three Spring Boot services
+- Runs unit tests
+- Runs integration tests with PostgreSQL database service
+- Uploads test results as artifacts
+
+**Trigger:** Every push to `main` or `develop`, or pull request
+
+#### 2. **Docker Build & Push Job** (`build-docker-images`)
+Runs ONLY after tests pass AND only on `main` branch:
+- Sets up Docker Buildx for multi-architecture builds
+- Authenticates with Docker Hub
+- Builds Docker images for all services:
+    - `user-service`
+    - `account-service`
+    - `transaction-service`
+    - `eureka-server`
+- Builds for both `linux/amd64` and `linux/arm64` architectures
+- Pushes images to Docker Hub with tags: `latest` and git commit SHA
+
+**Trigger:** Only on successful `main` branch builds
+
+### Services Built
+| Service             | Image                                      | Port |
+|---------------------|--------------------------------------------|------|
+| User Service        | `your-username/user-service:latest`        | 8081 |
+| Account Service     | `your-username/account-service:latest`     | 8082 |
+| Transaction Service | `your-username/transaction-service:latest` | 8083 |
+| Eureka Server       | `your-username/eureka-server:latest`       | 8761 |
+
+### Local Testing
+To run services locally with Docker:
+```bash
+# Start PostgreSQL
+docker run -d --name postgres-db --network banking-network \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 postgres:15
+
+# Create databases
+docker exec -it postgres-db psql -U postgres -c "CREATE DATABASE usersdb;"
+docker exec -it postgres-db psql -U postgres -c "CREATE DATABASE accountdb;"
+docker exec -it postgres-db psql -U postgres -c "CREATE DATABASE transactiondb;"
+
+# Start services
+docker run -p 8081:8081 --network banking-network \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/usersdb \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=postgres \
+  -e JWT_SECRET=your-secret-key \
+  your-username/user-service:latest
+
+docker run -p 8082:8082 --network banking-network \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/accountdb \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=postgres \
+  -e JWT_SECRET=your-secret-key \
+  your-username/account-service:latest
+
+docker run -p 8083:8083 --network banking-network \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/transactiondb \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=postgres \
+  -e JWT_SECRET=your-secret-key \
+  your-username/transaction-service:latest
 ```
-- Eureka Server runs on localhost:8761
-- Registers with Eureka at startup
-- Services register automatically and expose ports:
-    - User Service: 8081
-    - Account Service: 8082
-    - Transaction Service: 8083
+
+### Environment Variables
+| Variable                     | Description             | Example                                      |
+|------------------------------|-------------------------|----------------------------------------------|
+| `SPRING_DATASOURCE_URL`      | Database connection URL | `jdbc:postgresql://postgres-db:5432/usersdb` |
+| `SPRING_DATASOURCE_USERNAME` | Database username       | `postgres`                                   |
+| `SPRING_DATASOURCE_PASSWORD` | Database password       | `postgres`                                   |
+| `JWT_SECRET`                 | JWT token signing key   | `your-secret-key`                            |
+
+### GitHub Secrets Required
+Configure these in your GitHub repository settings (Settings → Secrets and variables → Actions):
+- `DOCKER_USERNAME` - Your Docker Hub username
+- `DOCKER_PASSWORD` - Your Docker Hub password or access token
 
 
 ### API Documentation
@@ -61,7 +140,6 @@ Each service is independently deployable, Dockerized, and registered with Eureka
 - Audit logging (optional, extensible)
 
 ### Future Improvements
-- CI/CD pipeline integration 
 - Centralized logging and monitoring 
 - Password reset flow
 - API gateway implementation
