@@ -1,5 +1,6 @@
 # Banking App
-A modular, secure, and scalable banking application built with Spring Boot and Docker. This project demonstrates clean architecture, JWT-based authentication, inter-service communication, and best practices in backend development.
+
+A modular and secure microservices-based banking application built with Spring Boot and containerized with Docker. This project demonstrates clean architecture with fully automated CI/CD pipeline, comprehensive security hardening, JWT-based authentication, inter-service communication, and best practices in backend development.
 
 ### Features
 | Service                 | Description                                                               |
@@ -12,15 +13,23 @@ Each service is independently deployable, Dockerized, and registered with Eureka
 
 ### Technologies Used
 
-- Java 17
-- Spring Boot
-- Spring Security (JWT-based)
-- Spring Data JPA
-- PostgreSQL
-- Maven
-- Docker
-- Eureka (Netflix OSS)
-- OpenAPI (Swagger UI)
+**Core**
+- Java 17 | Spring Boot 3.5 | Spring Cloud 2025.0.0
+
+**Security & Auth**
+- Spring Security 6.5.5 | JWT (JJWT 0.13.0)
+
+**Data & Database**
+- Spring Data JPA | Hibernate 6.6.22 | PostgreSQL
+
+**Build & DevOps**
+- Maven | Docker | GitHub Actions | Docker Buildx
+
+**Documentation & API**
+- OpenAPI 3.0 (Springdoc) | Swagger UI
+
+**Additional**
+- Lombok | MapStruct | JaCoCo (Code Coverage)
 
 ### Authentication & Security
 
@@ -131,13 +140,34 @@ Configure these in your GitHub repository settings (Settings → Secrets and var
 | **Transaction Service** | http://localhost:8083/swagger-ui/index.html  |
 
 ### Architecture Highlights
-- Clean separation of concerns: Controller → Service → Repository 
-- DTOs mapped via MapStruct 
-- Dockerized microservices with isolated responsibilities 
-- Inter-service communication via REST (Account ↔ Transaction)
-- Eureka-based service discovery 
-- OpenAPI documentation for all services 
-- Audit logging (optional, extensible)
+
+**Microservices Design**
+- Three independent Spring Boot services with isolated responsibilities
+- Clean separation of concerns: Controller → Service → Repository
+- DTOs mapped via MapStruct for type-safe transformations
+- Service-to-service communication via REST APIs (Account ↔ Transaction)
+- Eureka-based service discovery for dynamic service registration
+
+**Containerization & Deployment**
+- Dockerized microservices with multi-architecture support (amd64 & arm64)
+- Docker networking for inter-service communication
+- Environment-based configuration via Docker environment variables
+- Automated image publishing to Docker Hub via GitHub Actions
+
+**API & Documentation**
+- OpenAPI 3.0 specification with Swagger UI for all services
+- Standardized REST API design with proper HTTP status codes
+- Request/response validation with Bean Validation
+
+**Observability & Maintenance**
+- Audit logging with automatic tracking of user actions
+- Structured logging with SLF4J and Logback
+- Test coverage with JUnit 5, Mockito, and JaCoCo
+
+**Security**
+- JWT-based authentication across all services
+- Spring Security with role-based access control (RBAC)
+- All CVE vulnerabilities patched and regularly updated
 
 ### Future Improvements
 - Centralized logging and monitoring 
