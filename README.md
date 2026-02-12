@@ -2,6 +2,9 @@
 
 A modular and secure microservices-based banking application built with Spring Boot and containerized with Docker. This project demonstrates clean architecture with fully automated CI/CD pipeline, comprehensive security hardening, JWT-based authentication, inter-service communication, and best practices in backend development.
 
+## Architecture
+![System Architecture](./architecture.png)
+
 ### Features
 | Service                 | Description                                                               |
 |-------------------------|---------------------------------------------------------------------------|
