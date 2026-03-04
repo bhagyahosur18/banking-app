@@ -31,6 +31,7 @@ public class SecurityConfig {
         return httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/v1/accounts/me/**").hasRole("USER")
                         .requestMatchers("/api/v1/accounts/**").hasRole("ADMIN")
                         .requestMatchers(getPublicEndpoints()).permitAll()

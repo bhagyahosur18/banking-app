@@ -39,3 +39,19 @@ logging:
         security: DEBUG
     com.netflix.eureka: DEBUG
     com.netflix.discovery: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,info,env
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    app:
+      name: User Service
+      version: 1.0.0
+      description: Service that handles user registration, login, JWT issuance, and profile management
+    company:
+      name: Banking App

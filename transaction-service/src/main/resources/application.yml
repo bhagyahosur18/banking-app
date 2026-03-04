@@ -39,3 +39,19 @@ logging:
         security: DEBUG
     com.netflix.eureka: DEBUG
     com.netflix.discovery: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,info,env
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    app:
+      name: Transaction Service
+      version: 1.0.0
+      description: Service that processes deposits, withdrawals, transfers, and transaction history
+    company:
+      name: Banking App
