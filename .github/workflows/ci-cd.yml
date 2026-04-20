@@ -61,7 +61,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build with Maven
+      - name: Build all jars with Maven
         run: mvn clean package -DskipTests -DskipITs
 
       - name: Set up QEMU
@@ -79,7 +79,7 @@ jobs:
       - name: Build and push User Service image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./user-service        # ← points to folder containing src/ and pom.xml
           file: ./user-service/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
@@ -88,7 +88,7 @@ jobs:
       - name: Build and push Account Service image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./account-service
           file: ./account-service/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
@@ -97,7 +97,7 @@ jobs:
       - name: Build and push Transaction Service image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./transaction-service
           file: ./transaction-service/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
@@ -106,7 +106,7 @@ jobs:
       - name: Build and push Eureka Server image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./eureka-server
           file: ./eureka-server/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
