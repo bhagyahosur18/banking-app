@@ -6,7 +6,7 @@ import com.backendev.userservice.dto.UserRegistrationRequest;
 import com.backendev.userservice.dto.UserRegistrationResponse;
 import com.backendev.userservice.entity.Users;
 import com.backendev.userservice.exception.UserAlreadyExistsException;
-import com.backendev.userservice.repository.RolesRepository;
+import com.backendev.userservice.messaging.UserEventPublisher;
 import com.backendev.userservice.repository.UsersRepository;
 import com.backendev.userservice.service.UsersService;
 import org.junit.jupiter.api.Assertions;
@@ -16,12 +16,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @Transactional
@@ -35,14 +43,15 @@ class UsersServiceIT {
     private UsersRepository userRepository;
 
     @Autowired
-    private RolesRepository rolesRepository;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @MockitoBean
+    private UserEventPublisher userEventPublisher;
 
     @BeforeEach
     void setUp() {
         userRepository.deleteAll();
+        doNothing().when(userEventPublisher).publishUserEvent(any());
     }
 
     @Test
@@ -66,6 +75,33 @@ class UsersServiceIT {
         assertThat(savedUser).isNotNull();
         assertThat(savedUser.getEmail()).isEqualTo("john@example.com");
         assertThat(savedUser.getFirstName()).isEqualTo("John");
+    }
+
+    @Test
+    void testRegisterUser_shouldPublishKafkaEvent_onSuccess() {
+        UserRegistrationRequest request = buildRequest();
+
+        usersService.registerUser(request);
+
+        verify(userEventPublisher, times(1)).publishUserEvent(argThat(event ->
+                "REGISTRATION".equals(event.getEventType()) &&
+                        "john@example.com".equals(event.getEmail())
+        ));
+    }
+
+    @Test
+    void testRegisterUser_shouldNotPublishKafkaEvent_whenUserAlreadyExists() {
+        UserRegistrationRequest request = buildRequest();
+        usersService.registerUser(request);
+
+        // reset so we only count the second call
+        reset(userEventPublisher);
+        doNothing().when(userEventPublisher).publishUserEvent(any());
+
+        assertThatThrownBy(() -> usersService.registerUser(request))
+                .isInstanceOf(UserAlreadyExistsException.class);
+
+        verify(userEventPublisher, never()).publishUserEvent(any());
     }
 
     @Test
@@ -158,6 +194,9 @@ class UsersServiceIT {
         assertThat(userDTO).isNotNull();
         assertThat(userDTO.getEmail()).isEqualTo("john@example.com");
         assertThat(userDTO.getFirstName()).isEqualTo("John");
+
+        verify(userEventPublisher, times(1)).publishUserEvent(any()); // only from register
+
     }
 
     @Test
@@ -190,6 +229,34 @@ class UsersServiceIT {
     }
 
     @Test
+    void testUpdateUser_shouldPublishKafkaEvent_onSuccess() {
+        UserRegistrationRequest request = buildRequest();
+        UserRegistrationResponse registered = usersService.registerUser(request);
+
+        // reset so we only count the update call
+        reset(userEventPublisher);
+        doNothing().when(userEventPublisher).publishUserEvent(any());
+
+        UserProfileDTO updateRequest = new UserProfileDTO("John", "Doe Updated", "9876543210");
+        usersService.updateUser(registered.getId(), updateRequest);
+
+        verify(userEventPublisher, times(1)).publishUserEvent(argThat(event ->
+                "PROFILE_UPDATED".equals(event.getEventType()) &&
+                        "john@example.com".equals(event.getEmail())
+        ));
+    }
+
+    @Test
+    void testUpdateUser_shouldNotPublishKafkaEvent_whenUserNotFound() {
+        UserProfileDTO updateRequest = new UserProfileDTO("Jane", "Doe", "9876543210");
+
+        assertThatThrownBy(() -> usersService.updateUser(999L, updateRequest))
+                .isInstanceOf(RuntimeException.class);
+
+        verify(userEventPublisher, never()).publishUserEvent(any());
+    }
+
+    @Test
     void testUpdateUser_InvalidUser() {
         UserProfileDTO updateRequest = new UserProfileDTO("Jane", "Doe", "9876543210");
 
@@ -214,5 +281,16 @@ class UsersServiceIT {
         assertThat(response.getLastName()).isEqualTo(request.getLastName());
         assertThat(response.getEmail()).isEqualTo(request.getEmail());
         assertThat(response.getPhone()).isEqualTo(request.getPhone());
+    }
+
+    private UserRegistrationRequest buildRequest() {
+        return UserRegistrationRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("john@example.com")
+                .password("password123")
+                .phone("1234567890")
+                .roles(Set.of("ROLE_USER"))
+                .build();
     }
 }

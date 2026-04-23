@@ -1,5 +1,6 @@
 package com.backendev.userservice.unit.service;
 
+import com.backendev.userservice.dto.NotificationEvent;
 import com.backendev.userservice.dto.UserDTO;
 import com.backendev.userservice.dto.UserProfileDTO;
 import com.backendev.userservice.dto.UserRegistrationRequest;
@@ -9,6 +10,7 @@ import com.backendev.userservice.entity.Users;
 import com.backendev.userservice.exception.UserAlreadyExistsException;
 import com.backendev.userservice.exception.UserNotFoundException;
 import com.backendev.userservice.mapper.UserMapper;
+import com.backendev.userservice.messaging.UserEventPublisher;
 import com.backendev.userservice.repository.RolesRepository;
 import com.backendev.userservice.repository.UsersRepository;
 import com.backendev.userservice.service.UsersService;
@@ -27,6 +29,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -46,6 +49,9 @@ class UsersServiceTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private UserEventPublisher userEventPublisher;
 
     @InjectMocks
     private UsersService usersService;
@@ -88,6 +94,51 @@ class UsersServiceTest {
     }
 
     @Test
+    void registerUser_shouldPublishNotificationEvent_whenRegistrationSucceeds() {
+        when(usersRepository.existsByEmail("johndoe@test.com")).thenReturn(false);
+        when(userMapper.toEntity(registrationRequest)).thenReturn(userEntity);
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        when(usersRepository.save(userEntity)).thenReturn(userEntity);
+        when(rolesRepository.findByName("ROLE_USER")).thenReturn(Optional.of(roles));
+        when(userMapper.toResponse(userEntity)).thenReturn(registrationResponse);
+
+        usersService.registerUser(registrationRequest);
+
+        // verify Kafka event was published exactly once
+        verify(userEventPublisher, times(1)).publishUserEvent(any(NotificationEvent.class));
+    }
+
+    @Test
+    void registerUser_shouldPublishEventWithCorrectDetails_whenRegistrationSucceeds() {
+        when(usersRepository.existsByEmail("johndoe@test.com")).thenReturn(false);
+        when(userMapper.toEntity(registrationRequest)).thenReturn(userEntity);
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        when(usersRepository.save(userEntity)).thenReturn(userEntity);
+        when(rolesRepository.findByName("ROLE_USER")).thenReturn(Optional.of(roles));
+        when(userMapper.toResponse(userEntity)).thenReturn(registrationResponse);
+
+        usersService.registerUser(registrationRequest);
+
+        // verify the event contains correct data
+        verify(userEventPublisher).publishUserEvent(argThat(event ->
+                "REGISTRATION".equals(event.getEventType()) &&
+                        "johndoe@test.com".equals(event.getEmail()) &&
+                        "Registration Successful".equals(event.getSubject())
+        ));
+    }
+
+    @Test
+    void registerUser_shouldNotPublishEvent_whenEmailAlreadyExists() {
+        when(usersRepository.existsByEmail("johndoe@test.com")).thenReturn(true);
+
+        assertThrows(UserAlreadyExistsException.class,
+                () -> usersService.registerUser(registrationRequest));
+
+        // event must NOT be published if registration failed
+        verify(userEventPublisher, never()).publishUserEvent(any());
+    }
+
+    @Test
     void registerUser_shouldThrowException_whenEmailAlreadyExists() {
         when(usersRepository.existsByEmail("johndoe@test.com")).thenReturn(true);
 
@@ -116,6 +167,9 @@ class UsersServiceTest {
         UserDTO result = usersService.findUserByID(1L);
 
         assertEquals("johndoe@example.com", result.getEmail());
+
+        verify(userEventPublisher, never()).publishUserEvent(any());
+
     }
 
     @Test
@@ -138,6 +192,49 @@ class UsersServiceTest {
 
         assertEquals("436587909", result.getPhone());
     }
+
+    @Test
+    void updateUser_shouldPublishNotificationEvent_whenUpdateSucceeds() {
+        UserProfileDTO profileDTO = new UserProfileDTO("John", "Doe", "436587905");
+        when(usersRepository.findById(1L)).thenReturn(Optional.of(userEntity));
+        doNothing().when(userMapper).updateUserFromDto(profileDTO, userEntity);
+        when(usersRepository.save(userEntity)).thenReturn(userEntity);
+        UserDTO updatedDTO = new UserDTO("John", "Doe", "johndoe@example.com", "436587909");
+        when(userMapper.toDto(userEntity)).thenReturn(updatedDTO);
+
+        usersService.updateUser(1L, profileDTO);
+
+        verify(userEventPublisher, times(1)).publishUserEvent(any(NotificationEvent.class));
+    }
+
+    @Test
+    void updateUser_shouldPublishEventWithCorrectDetails_whenUpdateSucceeds() {
+        UserProfileDTO profileDTO = new UserProfileDTO("John", "Doe", "436587905");
+        when(usersRepository.findById(1L)).thenReturn(Optional.of(userEntity));
+        doNothing().when(userMapper).updateUserFromDto(profileDTO, userEntity);
+        when(usersRepository.save(userEntity)).thenReturn(userEntity);
+        UserDTO updatedDTO = new UserDTO("John", "Doe", "johndoe@example.com", "436587909");
+        when(userMapper.toDto(userEntity)).thenReturn(updatedDTO);
+
+        usersService.updateUser(1L, profileDTO);
+
+        verify(userEventPublisher).publishUserEvent(argThat(event ->
+                "PROFILE_UPDATED".equals(event.getEventType()) &&
+                        "johndoe@example.com".equals(event.getEmail()) &&
+                        "User Profile changed".equals(event.getSubject())
+        ));
+    }
+
+    @Test
+    void updateUser_shouldNotPublishEvent_whenUserNotFound() {
+        UserProfileDTO profileDTO = new UserProfileDTO("John", "Doe", "436587905");
+        when(usersRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> usersService.updateUser(1L, profileDTO));
+
+        verify(userEventPublisher, never()).publishUserEvent(any());
+    }
+
 
     @Test
     void updateUser_shouldThrowException_whenUserNotFound() {
