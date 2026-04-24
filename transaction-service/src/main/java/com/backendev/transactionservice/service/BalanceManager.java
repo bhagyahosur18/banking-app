@@ -4,6 +4,7 @@ import com.backendev.transactionservice.entity.AccountBalance;
 import com.backendev.transactionservice.exception.InsufficientFundsException;
 import com.backendev.transactionservice.mapper.AccountBalanceMapper;
 import com.backendev.transactionservice.repository.AccountBalanceRepository;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,15 +14,11 @@ import java.time.Instant;
 
 @Component
 @Slf4j
+@AllArgsConstructor
 public class BalanceManager {
 
     private final AccountBalanceRepository accountBalanceRepository;
     private final AccountBalanceMapper accountBalanceMapper;
-
-    public BalanceManager(AccountBalanceRepository accountBalanceRepository, AccountBalanceMapper accountBalanceMapper) {
-        this.accountBalanceRepository = accountBalanceRepository;
-        this.accountBalanceMapper = accountBalanceMapper;
-    }
 
     @Transactional
     public void updateAccountBalance(Long accountNumber, BigDecimal amount) {

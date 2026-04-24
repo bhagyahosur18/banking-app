@@ -9,6 +9,7 @@ import com.backendev.transactionservice.enums.TransactionType;
 import com.backendev.transactionservice.exception.TransactionProcessingException;
 import com.backendev.transactionservice.mapper.TransactionMapper;
 import com.backendev.transactionservice.repository.TransactionRepository;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.Random;
 
 @Component
 @Slf4j
+@AllArgsConstructor
 public class TransactionProcessor {
 
     private static final Random random = new Random();
@@ -26,12 +28,6 @@ public class TransactionProcessor {
     private final TransactionRepository transactionRepository;
     private final TransactionMapper transactionMapper;
     private final AccountService accountService;
-
-    public TransactionProcessor(TransactionRepository transactionRepository, TransactionMapper transactionMapper, AccountService accountService) {
-        this.transactionRepository = transactionRepository;
-        this.transactionMapper = transactionMapper;
-        this.accountService = accountService;
-    }
 
     @Transactional(rollbackFor = Exception.class)
     public Transaction createAndSaveTransaction(Object request, TransactionType type) {
@@ -60,7 +56,7 @@ public class TransactionProcessor {
                     accountNumber, balance, e);
         }
     }
-    public TransactionResponse failTransaction(Transaction transaction, String errorMessage, Exception cause) {
+    public void failTransaction(Transaction transaction, String errorMessage, Exception cause) {
         transaction.setStatus(TransactionStatus.FAILED);
         transaction.setUpdatedAt(Instant.now());
         transactionRepository.save(transaction);

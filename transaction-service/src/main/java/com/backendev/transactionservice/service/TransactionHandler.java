@@ -8,6 +8,7 @@ import com.backendev.transactionservice.enums.TransactionType;
 import com.backendev.transactionservice.exception.InsufficientFundsException;
 import com.backendev.transactionservice.exception.InvalidAccountException;
 import com.backendev.transactionservice.exception.TransactionProcessingException;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,19 +17,13 @@ import java.math.BigDecimal;
 
 @Component
 @Slf4j
+@AllArgsConstructor
 public class TransactionHandler {
 
     private final UserInfoService userInfoService;
     private final TransactionProcessor transactionProcessor;
     private final AccountService accountService;
     private final BalanceManager balanceManager;
-
-    public TransactionHandler(UserInfoService userInfoService, TransactionProcessor transactionProcessor, AccountService accountService, BalanceManager balanceManager) {
-        this.userInfoService = userInfoService;
-        this.transactionProcessor = transactionProcessor;
-        this.accountService = accountService;
-        this.balanceManager = balanceManager;
-    }
 
     public TransactionResponse processTransaction(TransactionRequest request,
                                                    TransactionType type,

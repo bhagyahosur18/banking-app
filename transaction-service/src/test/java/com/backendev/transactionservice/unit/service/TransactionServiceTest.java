@@ -1,6 +1,7 @@
 package com.backendev.transactionservice.unit.service;
 
 import com.backendev.transactionservice.dto.AccountBalanceInfo;
+import com.backendev.transactionservice.dto.NotificationEvent;
 import com.backendev.transactionservice.dto.TransactionInfo;
 import com.backendev.transactionservice.dto.TransactionRequest;
 import com.backendev.transactionservice.dto.TransactionResponse;
@@ -12,6 +13,7 @@ import com.backendev.transactionservice.enums.TransactionType;
 import com.backendev.transactionservice.exception.InvalidAccountException;
 import com.backendev.transactionservice.mapper.AccountBalanceMapper;
 import com.backendev.transactionservice.mapper.TransactionMapper;
+import com.backendev.transactionservice.messaging.TransactionEventPublisher;
 import com.backendev.transactionservice.repository.AccountBalanceRepository;
 import com.backendev.transactionservice.repository.TransactionRepository;
 import com.backendev.transactionservice.service.AccountService;
@@ -37,8 +39,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,6 +72,9 @@ class TransactionServiceTest {
 
     @Mock
     private TransactionHandler transactionHandler;
+
+    @Mock
+    private TransactionEventPublisher eventPublisher;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -137,6 +144,28 @@ class TransactionServiceTest {
         verify(transactionHandler).processTransaction(eq(transactionRequest), eq(TransactionType.DEPOSIT), any());
     }
 
+    @Test
+    void deposit_shouldPublishKafkaEvent_onSuccess() {
+        when(transactionHandler.processTransaction(eq(transactionRequest), eq(TransactionType.DEPOSIT), any()))
+                .thenReturn(transactionResponse);
+
+        transactionService.deposit(transactionRequest);
+
+        verify(eventPublisher, times(1)).publishTransactionEvent(any(NotificationEvent.class));
+    }
+
+    @Test
+    void deposit_shouldPublishEventWithCorrectType_onSuccess() {
+        when(transactionHandler.processTransaction(eq(transactionRequest), eq(TransactionType.DEPOSIT), any()))
+                .thenReturn(transactionResponse);
+
+        transactionService.deposit(transactionRequest);
+
+        verify(eventPublisher).publishTransactionEvent(argThat(event ->
+                "TRANSACTION_DEPOSITED".equals(event.getEventType()) &&
+                        "Transaction Alert - Deposit".equals(event.getSubject())
+        ));
+    }
 
     @Test
     void deposit_UpdatesBalanceCorrectly() {
@@ -164,6 +193,29 @@ class TransactionServiceTest {
         assertNotNull(result);
         assertEquals(TransactionStatus.COMPLETED, result.getStatus());
         verify(transactionHandler).processTransaction(eq(transactionRequest), eq(TransactionType.WITHDRAWAL), any());
+    }
+
+    @Test
+    void withdraw_shouldPublishKafkaEvent_onSuccess() {
+        when(transactionHandler.processTransaction(eq(transactionRequest), eq(TransactionType.WITHDRAWAL), any()))
+                .thenReturn(transactionResponse);
+
+        transactionService.withdraw(transactionRequest);
+
+        verify(eventPublisher, times(1)).publishTransactionEvent(any(NotificationEvent.class));
+    }
+
+    @Test
+    void withdraw_shouldPublishEventWithCorrectType_onSuccess() {
+        when(transactionHandler.processTransaction(eq(transactionRequest), eq(TransactionType.WITHDRAWAL), any()))
+                .thenReturn(transactionResponse);
+
+        transactionService.withdraw(transactionRequest);
+
+        verify(eventPublisher).publishTransactionEvent(argThat(event ->
+                "TRANSACTION_WITHDRAWAL".equals(event.getEventType()) &&
+                        "Transaction Alert - Withdrawal".equals(event.getSubject())
+        ));
     }
 
     @Test
@@ -214,6 +266,8 @@ class TransactionServiceTest {
         assertEquals(ACCOUNT_NUMBER, result.get(0).getFromAccountNumber());
         verify(transactionRepository).findAllByFromAccountNumberOrderByCreatedAtDesc(ACCOUNT_NUMBER);
         verify(transactionMapper).toTransactionInfoList(transactions);
+        verify(eventPublisher, never()).publishTransactionEvent(any());
+
     }
 
     @Test
@@ -264,6 +318,8 @@ class TransactionServiceTest {
         assertEquals("01 Oct 2025, 10:30 AM", result.getLastUpdated());
         verify(accountBalanceRepository).findByAccountNumber(ACCOUNT_NUMBER);
         verify(accountBalanceMapper).toAccountBalanceInfo(accountBalance);
+        verify(eventPublisher, never()).publishTransactionEvent(any());
+
     }
 
     @Test
@@ -275,6 +331,8 @@ class TransactionServiceTest {
 
         verify(accountBalanceRepository).findByAccountNumber(ACCOUNT_NUMBER);
         verify(accountBalanceMapper, never()).toAccountBalanceInfo(any());
+
+        verify(eventPublisher, never()).publishTransactionEvent(any());
     }
 
 }
