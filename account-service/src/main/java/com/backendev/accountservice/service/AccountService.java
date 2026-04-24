@@ -6,6 +6,7 @@ import com.backendev.accountservice.dto.AccountDto;
 import com.backendev.accountservice.dto.AccountResponse;
 import com.backendev.accountservice.dto.AccountValidationDto;
 import com.backendev.accountservice.dto.CreateAccountRequest;
+import com.backendev.accountservice.dto.NotificationEvent;
 import com.backendev.accountservice.dto.TransferValidationResponse;
 import com.backendev.accountservice.dto.UpdateAccountBalanceRequest;
 import com.backendev.accountservice.entity.Account;
@@ -16,8 +17,10 @@ import com.backendev.accountservice.exception.AccountLimitExceededException;
 import com.backendev.accountservice.exception.AccountNotFoundException;
 import com.backendev.accountservice.exception.InactiveAccountException;
 import com.backendev.accountservice.mapper.AccountMapper;
+import com.backendev.accountservice.messaging.AccountEventPublisher;
 import com.backendev.accountservice.repository.AccountRepository;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -27,17 +30,14 @@ import java.util.Random;
 
 @Service
 @Slf4j
+@AllArgsConstructor
 public class AccountService {
 
     private static final Random RANDOM = new Random();
 
     private final AccountRepository accountRepository;
     private final AccountMapper accountMapper;
-
-    public AccountService(AccountRepository accountRepository, AccountMapper accountMapper) {
-        this.accountRepository = accountRepository;
-        this.accountMapper = accountMapper;
-    }
+    private final AccountEventPublisher accountEventPublisher;
 
 
     public AccountDto createAccount(String userId, CreateAccountRequest accountRequest) {
@@ -51,8 +51,14 @@ public class AccountService {
 
         Account saved = accountRepository.save(account);
 
+        AccountDto accountDto = accountMapper.toAccountDto(saved);
+
+        publishNotificationEvent("Account created","Account created successfully",userId,"user@example.com",
+                accountDto.getAccountName()+" created",
+                "Your account has been created. Your account number is: "+ accountDto.getAccountNumber());
+
         log.info("Account created for user with user Id {}", userId);
-        return accountMapper.toAccountDto(saved);
+        return accountDto;
     }
 
     private void validateAccountLimit(String userId, AccountType accountType) {
@@ -92,7 +98,14 @@ public class AccountService {
     public AccountResponse deleteAccount(Long accountNumber) {
         Account account = fetchAccountFromAccountNumber(accountNumber);
         accountRepository.delete(account);
-        return new AccountResponse("DELETED", "Account deleted successfully");
+
+        AccountResponse accountResponse = new AccountResponse("DELETED", "Account deleted successfully");
+
+        publishNotificationEvent("Account Deleted","Account deleted successfully","userId","user@example.com",
+                "Account Deleted" ,
+                "Your account with account number "+ accountNumber +" has been deleted.");
+
+        return accountResponse;
     }
 
     // From Transaction service
@@ -135,5 +148,17 @@ public class AccountService {
     private Account fetchAccountFromAccountNumber(Long fromAccountNumber) {
         return accountRepository.findByAccountNumber(fromAccountNumber)
                 .orElseThrow(() -> new AccountNotFoundException(AccountConstants.ACCOUNT_NOT_FOUND + fromAccountNumber));
+    }
+
+    private void publishNotificationEvent(String eventType, String status, String userId, String email, String subject, String message){
+        NotificationEvent event = NotificationEvent.builder()
+                .eventType(eventType)
+                .status(status)
+                .userId(userId)
+                .email(email)
+                .subject(subject)
+                .message(message)
+                .build();
+        accountEventPublisher.publishAccountEvent(event);
     }
 }

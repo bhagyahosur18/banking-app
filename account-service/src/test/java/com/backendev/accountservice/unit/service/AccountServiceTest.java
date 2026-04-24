@@ -5,6 +5,7 @@ import com.backendev.accountservice.dto.AccountDto;
 import com.backendev.accountservice.dto.AccountResponse;
 import com.backendev.accountservice.dto.AccountValidationDto;
 import com.backendev.accountservice.dto.CreateAccountRequest;
+import com.backendev.accountservice.dto.NotificationEvent;
 import com.backendev.accountservice.dto.TransferValidationResponse;
 import com.backendev.accountservice.dto.UpdateAccountBalanceRequest;
 import com.backendev.accountservice.entity.Account;
@@ -14,6 +15,7 @@ import com.backendev.accountservice.exception.AccountLimitExceededException;
 import com.backendev.accountservice.exception.AccountNotFoundException;
 import com.backendev.accountservice.exception.InactiveAccountException;
 import com.backendev.accountservice.mapper.AccountMapper;
+import com.backendev.accountservice.messaging.AccountEventPublisher;
 import com.backendev.accountservice.repository.AccountRepository;
 import com.backendev.accountservice.service.AccountService;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,8 +37,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +52,9 @@ class AccountServiceTest {
 
     @Mock
     private AccountMapper accountMapper;
+
+    @Mock
+    private AccountEventPublisher accountEventPublisher;
 
     @InjectMocks
     private AccountService accountService;
@@ -118,11 +125,51 @@ class AccountServiceTest {
         }
 
         @Test
+        void shouldPublishEvent_whenAccountCreatedSuccessfully() {
+            when(accountRepository.countByUserIdAndType(userId, AccountType.SAVINGS)).thenReturn(0L);
+            when(accountRepository.existsByAccountNumber(anyLong())).thenReturn(false);
+            when(accountMapper.toEntity(createAccountRequest)).thenReturn(account);
+            when(accountRepository.save(account)).thenReturn(account);
+            when(accountMapper.toAccountDto(account)).thenReturn(accountDto);
+
+            accountService.createAccount(userId, createAccountRequest);
+
+            verify(accountEventPublisher, times(1)).publishAccountEvent(any(NotificationEvent.class));
+        }
+
+        @Test
+        void shouldPublishEventWithCorrectDetails_whenAccountCreated() {
+            when(accountRepository.countByUserIdAndType(userId, AccountType.SAVINGS)).thenReturn(0L);
+            when(accountRepository.existsByAccountNumber(anyLong())).thenReturn(false);
+            when(accountMapper.toEntity(createAccountRequest)).thenReturn(account);
+            when(accountRepository.save(account)).thenReturn(account);
+            when(accountMapper.toAccountDto(account)).thenReturn(accountDto);
+
+            accountService.createAccount(userId, createAccountRequest);
+
+            verify(accountEventPublisher).publishAccountEvent(argThat(event ->
+                    "Account created".equals(event.getEventType()) &&
+                            userId.equals(event.getUserId())
+            ));
+        }
+
+
+        @Test
         void shouldThrowException_whenAccountLimitExceeded() {
             when(accountRepository.countByUserIdAndType(userId, AccountType.SAVINGS)).thenReturn(5L);
 
             assertThrows(AccountLimitExceededException.class,
                     () -> accountService.createAccount(userId, createAccountRequest));
+        }
+
+        @Test
+        void shouldNotPublishEvent_whenAccountLimitExceeded() {
+            when(accountRepository.countByUserIdAndType(userId, AccountType.SAVINGS)).thenReturn(5L);
+
+            assertThrows(AccountLimitExceededException.class,
+                    () -> accountService.createAccount(userId, createAccountRequest));
+
+            verify(accountEventPublisher, never()).publishAccountEvent(any());
         }
 
         @Test
@@ -155,6 +202,7 @@ class AccountServiceTest {
 
             assertNotNull(result);
             assertEquals(expectedDto, result);
+            verify(accountEventPublisher, never()).publishAccountEvent(any());
         }
 
         @Test
@@ -182,6 +230,8 @@ class AccountServiceTest {
             assertNotNull(result);
             assertEquals(1, result.size());
             assertEquals(expectedDtos, result);
+
+            verify(accountEventPublisher, never()).publishAccountEvent(any());
         }
     }
 
@@ -198,6 +248,37 @@ class AccountServiceTest {
             assertEquals("DELETED", result.getStatus());
             assertEquals("Account deleted successfully", result.getMessage());
             verify(accountRepository).delete(account);
+        }
+
+        @Test
+        void shouldPublishEvent_whenAccountDeletedSuccessfully() {
+            when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.of(account));
+
+            accountService.deleteAccount(accountNumber);
+
+            verify(accountEventPublisher, times(1)).publishAccountEvent(any(NotificationEvent.class));
+        }
+
+        @Test
+        void shouldPublishEventWithCorrectDetails_whenAccountDeleted() {
+            when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.of(account));
+
+            accountService.deleteAccount(accountNumber);
+
+            verify(accountEventPublisher).publishAccountEvent(argThat(event ->
+                    "Account Deleted".equals(event.getEventType()) &&
+                            "Account Deleted".equals(event.getSubject())
+            ));
+        }
+
+        @Test
+        void shouldNotPublishEvent_whenAccountNotFoundForDeletion() {
+            when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.empty());
+
+            assertThrows(AccountNotFoundException.class,
+                    () -> accountService.deleteAccount(accountNumber));
+
+            verify(accountEventPublisher, never()).publishAccountEvent(any());
         }
 
         @Test
@@ -227,6 +308,8 @@ class AccountServiceTest {
             verify(accountRepository).save(account);
             assertEquals(BigDecimal.valueOf(2000), account.getBalance());
             assertNotNull(account.getUpdatedAt());
+
+            verify(accountEventPublisher, never()).publishAccountEvent(any());
         }
 
         @Test

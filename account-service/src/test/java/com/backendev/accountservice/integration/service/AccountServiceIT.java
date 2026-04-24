@@ -13,6 +13,7 @@ import com.backendev.accountservice.exception.AccountLimitExceededException;
 import com.backendev.accountservice.exception.AccountNotFoundException;
 import com.backendev.accountservice.exception.InactiveAccountException;
 import com.backendev.accountservice.integration.config.TestSecurityConfig;
+import com.backendev.accountservice.messaging.AccountEventPublisher;
 import com.backendev.accountservice.repository.AccountRepository;
 import com.backendev.accountservice.service.AccountService;
 import jakarta.persistence.EntityManager;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -30,6 +32,12 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Transactional
@@ -46,12 +54,16 @@ class AccountServiceIT {
     @Autowired
     private EntityManager entityManager;
 
+    @MockitoBean
+    private AccountEventPublisher accountEventPublisher;
+
     private static final String USER_ID = "user-123";
 
     @BeforeEach
     void setUp() {
         accountRepository.deleteAll();
         entityManager.flush();
+        doNothing().when(accountEventPublisher).publishAccountEvent(any());
     }
 
     @Nested
@@ -74,6 +86,16 @@ class AccountServiceIT {
 
             var accounts = accountRepository.findAll();
             assertThat(accounts).hasSize(1);
+        }
+
+        @Test
+        void testCreateAccount_shouldPublishKafkaEvent_onSuccess() {
+            accountService.createAccount(USER_ID, buildRequest(AccountType.SAVINGS, "My Savings Account"));
+
+            verify(accountEventPublisher, times(1)).publishAccountEvent(argThat(event ->
+                    "Account created".equals(event.getEventType()) &&
+                            USER_ID.equals(event.getUserId())
+            ));
         }
 
         @Test
@@ -160,7 +182,8 @@ class AccountServiceIT {
             assertThat(result.getAccountNumber()).isEqualTo(accountNumber);
             assertThat(result.getUserId()).isEqualTo(USER_ID);
             assertThat(result.getType()).isEqualTo(AccountType.SAVINGS);
-        }
+
+            verify(accountEventPublisher, times(1)).publishAccountEvent(any());        }
 
         @Test
         void testFetchAccountDetails_AccountNotFound() {
@@ -250,6 +273,17 @@ class AccountServiceIT {
 
             var accounts = accountRepository.findAll();
             assertThat(accounts).isEmpty();
+        }
+
+        @Test
+        void testDeleteAccount_shouldPublishKafkaEvent_onSuccess() {
+            AccountDto created = accountService.createAccount(USER_ID, buildRequest(AccountType.CHECKING, "Account"));
+
+            accountService.deleteAccount(created.getAccountNumber());
+
+            verify(accountEventPublisher, atLeastOnce()).publishAccountEvent(argThat(event ->
+                    "Account Deleted".equals(event.getEventType())
+            ));
         }
 
         @Test
@@ -434,6 +468,13 @@ class AccountServiceIT {
                     .isInstanceOf(InactiveAccountException.class)
                     .hasMessageContaining("destination account");
         }
+    }
+
+    private CreateAccountRequest buildRequest(AccountType type, String name) {
+        CreateAccountRequest request = new CreateAccountRequest();
+        request.setAccountType(type);
+        request.setAccountName(name);
+        return request;
     }
 
 }
