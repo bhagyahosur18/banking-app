@@ -66,6 +66,7 @@ class AccountServiceTest {
     private AccountValidationDto toAccountDto;
 
     private final String userId = "user123";
+    private final String email = "user@exmaple.com";
     private final Long accountNumber = 1234567890L;
     private Account fromAccount;
     private Account toAccount;
@@ -117,7 +118,7 @@ class AccountServiceTest {
             when(accountRepository.save(account)).thenReturn(account);
             when(accountMapper.toAccountDto(account)).thenReturn(accountDto);
 
-            AccountDto result = accountService.createAccount(userId, createAccountRequest);
+            AccountDto result = accountService.createAccount(userId, email, createAccountRequest);
 
             assertNotNull(result);
             assertEquals(accountNumber, result.getAccountNumber());
@@ -132,7 +133,7 @@ class AccountServiceTest {
             when(accountRepository.save(account)).thenReturn(account);
             when(accountMapper.toAccountDto(account)).thenReturn(accountDto);
 
-            accountService.createAccount(userId, createAccountRequest);
+            accountService.createAccount(userId, email, createAccountRequest);
 
             verify(accountEventPublisher, times(1)).publishAccountEvent(any(NotificationEvent.class));
         }
@@ -145,7 +146,7 @@ class AccountServiceTest {
             when(accountRepository.save(account)).thenReturn(account);
             when(accountMapper.toAccountDto(account)).thenReturn(accountDto);
 
-            accountService.createAccount(userId, createAccountRequest);
+            accountService.createAccount(userId, email, createAccountRequest);
 
             verify(accountEventPublisher).publishAccountEvent(argThat(event ->
                     "Account created".equals(event.getEventType()) &&
@@ -159,7 +160,7 @@ class AccountServiceTest {
             when(accountRepository.countByUserIdAndType(userId, AccountType.SAVINGS)).thenReturn(5L);
 
             assertThrows(AccountLimitExceededException.class,
-                    () -> accountService.createAccount(userId, createAccountRequest));
+                    () -> accountService.createAccount(userId, email, createAccountRequest));
         }
 
         @Test
@@ -167,7 +168,7 @@ class AccountServiceTest {
             when(accountRepository.countByUserIdAndType(userId, AccountType.SAVINGS)).thenReturn(5L);
 
             assertThrows(AccountLimitExceededException.class,
-                    () -> accountService.createAccount(userId, createAccountRequest));
+                    () -> accountService.createAccount(userId, email, createAccountRequest));
 
             verify(accountEventPublisher, never()).publishAccountEvent(any());
         }
@@ -182,7 +183,7 @@ class AccountServiceTest {
             when(accountRepository.save(account)).thenReturn(account);
             when(accountMapper.toAccountDto(account)).thenReturn(accountDto);
 
-            AccountDto result = accountService.createAccount(userId, createAccountRequest);
+            AccountDto result = accountService.createAccount(userId, email, createAccountRequest);
 
             assertNotNull(result);
             verify(accountRepository, atLeast(2)).existsByAccountNumber(anyLong());

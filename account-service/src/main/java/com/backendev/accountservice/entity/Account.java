@@ -36,6 +36,8 @@ public class Account {
     @Column(nullable = false, length = 50)
     private String userId; // Reference to user from user service
 
+    private String email;
+
     private BigDecimal balance;
 
     private String accountName;

@@ -58,6 +58,7 @@ class AccountControllerTest {
     private ObjectMapper objectMapper;
 
     private static final String USER_ID = "user123";
+    private static final String EMAIL_ID = "user@exmple.com";
     private static final Long ACCOUNT_NUMBER = 1234567890L;
 
     @BeforeEach
@@ -74,7 +75,8 @@ class AccountControllerTest {
         AccountDto expectedResponse = createAccountDto();
 
         when(securityService.getCurrentUserId()).thenReturn(USER_ID);
-        when(accountService.createAccount(USER_ID, request)).thenReturn(expectedResponse);
+        when(securityService.getCurrentUserEmail()).thenReturn(EMAIL_ID);
+        when(accountService.createAccount(USER_ID, EMAIL_ID, request)).thenReturn(expectedResponse);
 
         
         mockMvc.perform(post("/api/v1/accounts")
@@ -87,7 +89,7 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.status").value(expectedResponse.getStatus().toString()));
 
         verify(securityService).getCurrentUserId();
-        verify(accountService).createAccount(USER_ID, request);
+        verify(accountService).createAccount(USER_ID, EMAIL_ID, request);
     }
 
     @Test
@@ -102,7 +104,7 @@ class AccountControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(securityService, never()).getCurrentUserId();
-        verify(accountService, never()).createAccount(anyString(), any());
+        verify(accountService, never()).createAccount(anyString(), anyString(), any());
     }
 
     @Test
@@ -256,7 +258,9 @@ class AccountControllerTest {
         CreateAccountRequest request = createValidAccountRequest();
 
         when(securityService.getCurrentUserId()).thenReturn(USER_ID);
-        when(accountService.createAccount(USER_ID, request))
+        when(securityService.getCurrentUserEmail()).thenReturn(EMAIL_ID);
+
+        when(accountService.createAccount(USER_ID, EMAIL_ID, request))
                 .thenThrow(new RuntimeException("Service error"));
 
         mockMvc.perform(post("/api/v1/accounts")
@@ -268,7 +272,8 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.errorDetails").value("An unexpected error occurred."));
 
         verify(securityService).getCurrentUserId();
-        verify(accountService).createAccount(USER_ID, request);
+        verify(securityService).getCurrentUserEmail();
+        verify(accountService).createAccount(USER_ID, EMAIL_ID, request);
     }
 
     @Test
@@ -276,7 +281,8 @@ class AccountControllerTest {
         CreateAccountRequest request = createValidAccountRequest();
 
         when(securityService.getCurrentUserId()).thenReturn(USER_ID);
-        when(accountService.createAccount(USER_ID, request))
+        when(securityService.getCurrentUserEmail()).thenReturn(EMAIL_ID);
+        when(accountService.createAccount(USER_ID, EMAIL_ID, request))
                 .thenThrow(new AccountAlreadyExistsException("Account already exists"));
 
         mockMvc.perform(post("/api/v1/accounts")
@@ -288,7 +294,8 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.errorDetails").value("The account already exists."));
 
         verify(securityService).getCurrentUserId();
-        verify(accountService).createAccount(USER_ID, request);
+        verify(securityService).getCurrentUserEmail();
+        verify(accountService).createAccount(USER_ID, EMAIL_ID, request);
     }
 
     @Test

@@ -45,7 +45,8 @@ public class AccountController {
     @PostMapping
     public ResponseEntity<AccountDto> createAccount(@Valid @RequestBody CreateAccountRequest accountRequest){
         String userId = securityService.getCurrentUserId();
-        AccountDto accountDto = accountService.createAccount(userId, accountRequest);
+        String currentUserEmail = securityService.getCurrentUserEmail();
+        AccountDto accountDto = accountService.createAccount(userId, currentUserEmail, accountRequest);
         return new ResponseEntity<>(accountDto,HttpStatus.CREATED);
     }
 

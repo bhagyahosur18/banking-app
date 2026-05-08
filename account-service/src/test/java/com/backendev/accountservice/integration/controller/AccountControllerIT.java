@@ -65,6 +65,7 @@ class AccountControllerIT {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private static final String BASE_URL = "/api/v1/accounts";
     private static final String USER_ID = "user-123";
+    private static final String EMAIL_ID = "user@example.com";
 
     @BeforeEach
     void setUp() {
@@ -128,7 +129,7 @@ class AccountControllerIT {
             createRequest.setAccountType(AccountType.SAVINGS);
             createRequest.setAccountName("My Account");
 
-            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+            AccountDto createdAccount = accountService.createAccount(USER_ID, EMAIL_ID, createRequest);
             Long accountNumber = createdAccount.getAccountNumber();
 
             mockMvc.perform(get(BASE_URL + "/me/" + accountNumber))
@@ -152,7 +153,7 @@ class AccountControllerIT {
             createRequest.setAccountType(AccountType.CHECKING);
             createRequest.setAccountName("Checking Account");
 
-            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+            AccountDto createdAccount = accountService.createAccount(USER_ID, EMAIL_ID, createRequest);
             Long accountNumber = createdAccount.getAccountNumber();
 
             mockMvc.perform(get(BASE_URL + "/" + accountNumber))
@@ -171,7 +172,7 @@ class AccountControllerIT {
             createRequest.setAccountType(AccountType.SAVINGS);
             createRequest.setAccountName("User Account");
 
-            accountService.createAccount(USER_ID, createRequest);
+            accountService.createAccount(USER_ID, EMAIL_ID, createRequest);
             var accounts = accountRepository.findAll();
             Long accountNumber = accounts.get(0).getAccountNumber();
 
@@ -189,10 +190,10 @@ class AccountControllerIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("From Account");
 
-            AccountDto fromAccount = accountService.createAccount(USER_ID, request);
+            AccountDto fromAccount = accountService.createAccount(USER_ID, EMAIL_ID, request);
 
             request.setAccountName("To Account");
-            AccountDto toAccount = accountService.createAccount(USER_ID, request);
+            AccountDto toAccount = accountService.createAccount(USER_ID, EMAIL_ID, request);
 
             mockMvc.perform(get(BASE_URL + "/validate-transfer")
                             .param("fromAccountNumber", fromAccount.getAccountNumber().toString())
@@ -213,7 +214,7 @@ class AccountControllerIT {
             createRequest.setAccountType(AccountType.SAVINGS);
             createRequest.setAccountName("Savings Account");
 
-            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+            AccountDto createdAccount = accountService.createAccount(USER_ID, EMAIL_ID, createRequest);
 
             UpdateAccountBalanceRequest updateRequest = new UpdateAccountBalanceRequest();
             updateRequest.setAccountNumber(createdAccount.getAccountNumber());
@@ -237,12 +238,12 @@ class AccountControllerIT {
             CreateAccountRequest request1 = new CreateAccountRequest();
             request1.setAccountType(AccountType.SAVINGS);
             request1.setAccountName("Savings");
-            accountService.createAccount(USER_ID, request1);
+            accountService.createAccount(USER_ID, EMAIL_ID, request1);
 
             CreateAccountRequest request2 = new CreateAccountRequest();
             request2.setAccountType(AccountType.CHECKING);
             request2.setAccountName("Checking");
-            accountService.createAccount(USER_ID, request2);
+            accountService.createAccount(USER_ID, EMAIL_ID, request2);
 
             mockMvc.perform(get(BASE_URL + "/me"))
                     .andExpect(status().isOk())
@@ -270,7 +271,7 @@ class AccountControllerIT {
             createRequest.setAccountType(AccountType.SAVINGS);
             createRequest.setAccountName("Account to Delete");
 
-            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+            AccountDto createdAccount = accountService.createAccount(USER_ID, EMAIL_ID, createRequest);
 
             mockMvc.perform(delete(BASE_URL + "/" + createdAccount.getAccountNumber()))
                     .andExpect(status().isOk());
@@ -285,7 +286,7 @@ class AccountControllerIT {
             createRequest.setAccountType(AccountType.SAVINGS);
             createRequest.setAccountName("Account");
 
-            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+            AccountDto createdAccount = accountService.createAccount(USER_ID, EMAIL_ID, createRequest);
 
             mockMvc.perform(delete(BASE_URL + "/" + createdAccount.getAccountNumber()))
                     .andExpect(status().isForbidden());
@@ -305,7 +306,7 @@ class AccountControllerIT {
             createRequest.setAccountType(AccountType.SAVINGS);
             createRequest.setAccountName("Account");
 
-            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+            AccountDto createdAccount = accountService.createAccount(USER_ID, EMAIL_ID, createRequest);
 
             mockMvc.perform(put(BASE_URL + "/" + createdAccount.getAccountNumber() + "/status"))
                     .andExpect(status().isOk())
@@ -321,7 +322,7 @@ class AccountControllerIT {
             createRequest.setAccountType(AccountType.SAVINGS);
             createRequest.setAccountName("Account");
 
-            AccountDto createdAccount = accountService.createAccount(USER_ID, createRequest);
+            AccountDto createdAccount = accountService.createAccount(USER_ID, EMAIL_ID, createRequest);
 
             mockMvc.perform(put(BASE_URL + "/" + createdAccount.getAccountNumber() + "/status"))
                     .andExpect(status().isForbidden());

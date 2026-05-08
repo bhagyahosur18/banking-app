@@ -40,20 +40,21 @@ public class AccountService {
     private final AccountEventPublisher accountEventPublisher;
 
 
-    public AccountDto createAccount(String userId, CreateAccountRequest accountRequest) {
+    public AccountDto createAccount(String userId, String email, CreateAccountRequest accountRequest) {
         AccountType accountType = accountRequest.getAccountType();
 
         validateAccountLimit(userId, accountType);
 
         Account account = accountMapper.toEntity(accountRequest);
         account.setUserId(userId);
+        account.setEmail(email);
         account.setAccountNumber(generateRandomAccountNumber());
 
         Account saved = accountRepository.save(account);
 
         AccountDto accountDto = accountMapper.toAccountDto(saved);
 
-        publishNotificationEvent("Account created","Account created successfully",userId,"user@example.com",
+        publishNotificationEvent("Account created","Account created successfully",userId, accountDto.getEmail(),
                 accountDto.getAccountName()+" created",
                 "Your account has been created. Your account number is: "+ accountDto.getAccountNumber());
 
@@ -101,7 +102,7 @@ public class AccountService {
 
         AccountResponse accountResponse = new AccountResponse("DELETED", "Account deleted successfully");
 
-        publishNotificationEvent("Account Deleted","Account deleted successfully","userId","user@example.com",
+        publishNotificationEvent("Account Deleted","Your account has been deleted successfully", account.getUserId(), account.getEmail(),
                 "Account Deleted" ,
                 "Your account with account number "+ accountNumber +" has been deleted.");
 

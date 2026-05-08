@@ -27,6 +27,7 @@ class AccountRepositoryIT {
     private AccountRepository repository;
 
     private static final String USER_ID = "user-123";
+    private static final String EMAIL_ID = "user@example.com";
     private static final Long ACC_NUM_1 = 1234567890L;
     private static final Long ACC_NUM_2 = 9876543210L;
 
@@ -37,7 +38,7 @@ class AccountRepositoryIT {
 
     @Test
     void testExistsByUserId() {
-        Account account = new Account(null, ACC_NUM_1, USER_ID, BigDecimal.valueOf(5000),
+        Account account = new Account(null, ACC_NUM_1, USER_ID, EMAIL_ID, BigDecimal.valueOf(5000),
                 "Savings Account", AccountType.SAVINGS, AccountStatus.ACTIVE, Instant.now(), null);
         repository.save(account);
 
@@ -47,7 +48,7 @@ class AccountRepositoryIT {
 
     @Test
     void testExistsByAccountNumber() {
-        Account account = new Account(null, ACC_NUM_1, USER_ID, BigDecimal.valueOf(5000),
+        Account account = new Account(null, ACC_NUM_1, USER_ID, EMAIL_ID, BigDecimal.valueOf(5000),
                 "Savings Account", AccountType.SAVINGS, AccountStatus.ACTIVE, Instant.now(), null);
         repository.save(account);
 
@@ -57,7 +58,7 @@ class AccountRepositoryIT {
 
     @Test
     void testFindByAccountNumberAndUserId() {
-        Account account = new Account(null, ACC_NUM_1, USER_ID, BigDecimal.valueOf(5000),
+        Account account = new Account(null, ACC_NUM_1, USER_ID, EMAIL_ID, BigDecimal.valueOf(5000),
                 "Savings Account", AccountType.SAVINGS, AccountStatus.ACTIVE, Instant.now(), null);
         repository.save(account);
 
@@ -70,11 +71,11 @@ class AccountRepositoryIT {
 
     @Test
     void testCountByUserIdAndType() {
-        Account acc1 = new Account(null, ACC_NUM_1, USER_ID, BigDecimal.valueOf(5000),
+        Account acc1 = new Account(null, ACC_NUM_1, USER_ID, EMAIL_ID, BigDecimal.valueOf(5000),
                 "Savings Account 1", AccountType.SAVINGS, AccountStatus.ACTIVE, Instant.now(), null);
         repository.save(acc1);
 
-        Account acc2 = new Account(null, ACC_NUM_2, USER_ID, BigDecimal.valueOf(3000),
+        Account acc2 = new Account(null, ACC_NUM_2, USER_ID, EMAIL_ID, BigDecimal.valueOf(3000),
                 "Savings Account 2", AccountType.SAVINGS, AccountStatus.ACTIVE, Instant.now(), null);
         repository.save(acc2);
 
@@ -84,11 +85,11 @@ class AccountRepositoryIT {
 
     @Test
     void testFindByUserId() {
-        Account acc1 = new Account(null, ACC_NUM_1, USER_ID, BigDecimal.valueOf(5000),
+        Account acc1 = new Account(null, ACC_NUM_1, USER_ID, EMAIL_ID, BigDecimal.valueOf(5000),
                 "Savings Account", AccountType.SAVINGS, AccountStatus.ACTIVE, Instant.now(), null);
         repository.save(acc1);
 
-        Account acc2 = new Account(null, ACC_NUM_2, USER_ID, BigDecimal.valueOf(3000),
+        Account acc2 = new Account(null, ACC_NUM_2, USER_ID, EMAIL_ID, BigDecimal.valueOf(3000),
                 "Checking Account", AccountType.CHECKING, AccountStatus.ACTIVE, Instant.now(), null);
         repository.save(acc2);
 
@@ -101,7 +102,7 @@ class AccountRepositoryIT {
 
     @Test
     void testFindByAccountNumber() {
-        Account account = new Account(null, ACC_NUM_1, USER_ID, BigDecimal.valueOf(5000),
+        Account account = new Account(null, ACC_NUM_1, USER_ID, EMAIL_ID, BigDecimal.valueOf(5000),
                 "Savings Account", AccountType.SAVINGS, AccountStatus.ACTIVE, Instant.now(), null);
         repository.save(account);
 
@@ -114,7 +115,7 @@ class AccountRepositoryIT {
 
     @Test
     void testExistsByAccountNumberAndUserId() {
-        Account account = new Account(null, ACC_NUM_1, USER_ID, BigDecimal.valueOf(5000),
+        Account account = new Account(null, ACC_NUM_1, USER_ID, EMAIL_ID, BigDecimal.valueOf(5000),
                 "Savings Account", AccountType.SAVINGS, AccountStatus.ACTIVE, Instant.now(), null);
         repository.save(account);
 

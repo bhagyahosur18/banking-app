@@ -58,6 +58,8 @@ class AccountServiceIT {
     private AccountEventPublisher accountEventPublisher;
 
     private static final String USER_ID = "user-123";
+    private static final String EMAIL_ID = "user@example.com";
+
 
     @BeforeEach
     void setUp() {
@@ -75,7 +77,7 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("My Savings Account");
 
-            AccountDto result = accountService.createAccount(USER_ID, request);
+            AccountDto result = accountService.createAccount(USER_ID, EMAIL_ID, request);
 
             assertThat(result).isNotNull();
             assertThat(result.getAccountNumber()).isNotNull();
@@ -90,7 +92,7 @@ class AccountServiceIT {
 
         @Test
         void testCreateAccount_shouldPublishKafkaEvent_onSuccess() {
-            accountService.createAccount(USER_ID, buildRequest(AccountType.SAVINGS, "My Savings Account"));
+            accountService.createAccount(USER_ID, EMAIL_ID, buildRequest(AccountType.SAVINGS, "My Savings Account"));
 
             verify(accountEventPublisher, times(1)).publishAccountEvent(argThat(event ->
                     "Account created".equals(event.getEventType()) &&
@@ -108,8 +110,8 @@ class AccountServiceIT {
             request2.setAccountType(AccountType.CHECKING);
             request2.setAccountName("Account 2");
 
-            AccountDto account1 = accountService.createAccount(USER_ID, request1);
-            AccountDto account2 = accountService.createAccount(USER_ID, request2);
+            AccountDto account1 = accountService.createAccount(USER_ID, EMAIL_ID, request1);
+            AccountDto account2 = accountService.createAccount(USER_ID, EMAIL_ID, request2);
 
             assertThat(account1.getAccountNumber()).isNotEqualTo(account2.getAccountNumber());
         }
@@ -119,7 +121,7 @@ class AccountServiceIT {
             CreateAccountRequest request = new CreateAccountRequest();
             request.setAccountType(AccountType.CHECKING);
 
-            AccountDto result = accountService.createAccount(USER_ID, request);
+            AccountDto result = accountService.createAccount(USER_ID, EMAIL_ID, request);
 
             assertThat(result).isNotNull();
             assertThat(result.getType()).isEqualTo(AccountType.CHECKING);
@@ -135,10 +137,10 @@ class AccountServiceIT {
             int maxLimit = AccountLimits.getMaxAccountsForType(AccountType.SAVINGS);
 
             for (int i = 0; i < maxLimit; i++) {
-                accountService.createAccount(USER_ID, request);
+                accountService.createAccount(USER_ID, EMAIL_ID, request);
             }
 
-            assertThatThrownBy(() -> accountService.createAccount(USER_ID, request))
+            assertThatThrownBy(() -> accountService.createAccount(USER_ID, EMAIL_ID, request))
                     .isInstanceOf(AccountLimitExceededException.class)
                     .hasMessageContaining("reached the limit");
         }
@@ -153,10 +155,10 @@ class AccountServiceIT {
             int maxLimit = AccountLimits.getMaxAccountsForType(AccountType.SAVINGS);
 
             for (int i = 0; i < maxLimit; i++) {
-                accountService.createAccount(USER_ID, request);
+                accountService.createAccount(USER_ID, EMAIL_ID, request);
             }
 
-            AccountDto user2Account = accountService.createAccount(user2, request);
+            AccountDto user2Account = accountService.createAccount(user2, EMAIL_ID, request);
 
             assertThat(user2Account.getUserId()).isEqualTo(user2);
             var allAccounts = accountRepository.findAll();
@@ -173,7 +175,7 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("My Account");
 
-            AccountDto created = accountService.createAccount(USER_ID, request);
+            AccountDto created = accountService.createAccount(USER_ID, EMAIL_ID, request);
             Long accountNumber = created.getAccountNumber();
 
             AccountDetailsDto result = accountService.fetchAccountDetails(accountNumber, USER_ID);
@@ -198,7 +200,7 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("Account");
 
-            AccountDto created = accountService.createAccount(USER_ID, request);
+            AccountDto created = accountService.createAccount(USER_ID, EMAIL_ID, request);
             Long accountNumber = created.getAccountNumber();
 
             assertThatThrownBy(() -> accountService.fetchAccountDetails(accountNumber, "wrong-user"))
@@ -219,8 +221,8 @@ class AccountServiceIT {
             request2.setAccountType(AccountType.CHECKING);
             request2.setAccountName("Checking");
 
-            accountService.createAccount(USER_ID, request1);
-            accountService.createAccount(USER_ID, request2);
+            accountService.createAccount(USER_ID, EMAIL_ID, request1);
+            accountService.createAccount(USER_ID, EMAIL_ID, request2);
 
             List<AccountDetailsDto> result = accountService.fetchAccountsForUser(USER_ID);
 
@@ -239,12 +241,13 @@ class AccountServiceIT {
         @Test
         void testFetchAccountsForUser_OnlyUserAccounts() {
             String user2 = "user-456";
+            String emailId2 = "user456@example.com";
             CreateAccountRequest request = new CreateAccountRequest();
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("Account");
 
-            accountService.createAccount(USER_ID, request);
-            accountService.createAccount(user2, request);
+            accountService.createAccount(USER_ID, EMAIL_ID, request);
+            accountService.createAccount(user2, emailId2, request);
 
             List<AccountDetailsDto> userAccounts = accountService.fetchAccountsForUser(USER_ID);
 
@@ -263,7 +266,7 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("Account to Delete");
 
-            AccountDto created = accountService.createAccount(USER_ID, request);
+            AccountDto created = accountService.createAccount(USER_ID, EMAIL_ID, request);
             Long accountNumber = created.getAccountNumber();
 
             AccountResponse result = accountService.deleteAccount(accountNumber);
@@ -277,7 +280,7 @@ class AccountServiceIT {
 
         @Test
         void testDeleteAccount_shouldPublishKafkaEvent_onSuccess() {
-            AccountDto created = accountService.createAccount(USER_ID, buildRequest(AccountType.CHECKING, "Account"));
+            AccountDto created = accountService.createAccount(USER_ID, EMAIL_ID, buildRequest(AccountType.CHECKING, "Account"));
 
             accountService.deleteAccount(created.getAccountNumber());
 
@@ -302,7 +305,7 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("Account");
 
-            AccountDto created = accountService.createAccount(USER_ID, request);
+            AccountDto created = accountService.createAccount(USER_ID, EMAIL_ID, request);
 
             UpdateAccountBalanceRequest updateRequest = new UpdateAccountBalanceRequest();
             updateRequest.setAccountNumber(created.getAccountNumber());
@@ -336,7 +339,7 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("Account");
 
-            AccountDto created = accountService.createAccount(USER_ID, request);
+            AccountDto created = accountService.createAccount(USER_ID, EMAIL_ID, request);
             Long accountNumber = created.getAccountNumber();
 
             AccountDto result = accountService.markAccountFrozen(accountNumber);
@@ -366,7 +369,7 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("Account");
 
-            AccountDto created = accountService.createAccount(USER_ID, request);
+            AccountDto created = accountService.createAccount(USER_ID, EMAIL_ID, request);
             Long accountNumber = created.getAccountNumber();
 
             boolean owns = accountService.doesUserOwnAccount(USER_ID, accountNumber);
@@ -380,7 +383,7 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("Account");
 
-            AccountDto created = accountService.createAccount(USER_ID, request);
+            AccountDto created = accountService.createAccount(USER_ID, EMAIL_ID, request);
             Long accountNumber = created.getAccountNumber();
 
             boolean owns = accountService.doesUserOwnAccount("different-user", accountNumber);
@@ -401,10 +404,10 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("From Account");
 
-            AccountDto fromAccount = accountService.createAccount(USER_ID, request);
+            AccountDto fromAccount = accountService.createAccount(USER_ID, EMAIL_ID, request);
 
             request.setAccountName("To Account");
-            AccountDto toAccount = accountService.createAccount(USER_ID, request);
+            AccountDto toAccount = accountService.createAccount(USER_ID, EMAIL_ID, request);
 
             TransferValidationResponse result = accountService.validateTransferAccounts(
                     fromAccount.getAccountNumber(),
@@ -422,7 +425,7 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("Account");
 
-            AccountDto account = accountService.createAccount(USER_ID, request);
+            AccountDto account = accountService.createAccount(USER_ID, EMAIL_ID, request);
 
             Long invalidUserId = 99999L;
             Long accountNumber = account.getAccountNumber();
@@ -437,8 +440,8 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("Account");
 
-            AccountDto fromAccount = accountService.createAccount(USER_ID, request);
-            AccountDto toAccount = accountService.createAccount(USER_ID, request);
+            AccountDto fromAccount = accountService.createAccount(USER_ID, EMAIL_ID, request);
+            AccountDto toAccount = accountService.createAccount(USER_ID, EMAIL_ID, request);
 
             accountService.markAccountFrozen(fromAccount.getAccountNumber());
 
@@ -456,8 +459,8 @@ class AccountServiceIT {
             request.setAccountType(AccountType.SAVINGS);
             request.setAccountName("Account");
 
-            AccountDto fromAccount = accountService.createAccount(USER_ID, request);
-            AccountDto toAccount = accountService.createAccount(USER_ID, request);
+            AccountDto fromAccount = accountService.createAccount(USER_ID, EMAIL_ID, request);
+            AccountDto toAccount = accountService.createAccount(USER_ID, EMAIL_ID, request);
 
             accountService.markAccountFrozen(toAccount.getAccountNumber());
 
