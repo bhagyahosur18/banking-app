@@ -11,9 +11,9 @@ import com.backendev.transactionservice.exception.InvalidAccountException;
 import com.backendev.transactionservice.exception.TransactionProcessingException;
 import com.backendev.transactionservice.service.AccountService;
 import com.backendev.transactionservice.service.BalanceManager;
+import com.backendev.transactionservice.service.SecurityService;
 import com.backendev.transactionservice.service.TransactionHandler;
 import com.backendev.transactionservice.service.TransactionProcessor;
-import com.backendev.transactionservice.service.UserInfoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 class TransactionHandlerIT {
 
     @Mock
-    private UserInfoService userInfoService;
+    private SecurityService securityService;
 
     @Mock
     private TransactionProcessor transactionProcessor;
@@ -57,7 +57,7 @@ class TransactionHandlerIT {
 
     @BeforeEach
     void setUp() {
-        transactionHandler = new TransactionHandler(userInfoService, transactionProcessor, accountService, balanceManager);
+        transactionHandler = new TransactionHandler(securityService, transactionProcessor, accountService, balanceManager);
     }
 
     private TransactionRequest createTransactionRequest() {
@@ -105,7 +105,7 @@ class TransactionHandlerIT {
             Transaction transaction = createTransaction("TXN001", TransactionType.DEPOSIT);
             TransactionResponse response = createTransactionResponse("TXN001");
 
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             doNothing().when(accountService).validateAccountAndOwnership(ACCOUNT_NUMBER, USER_ID);
             when(transactionProcessor.createAndSaveTransaction(request, TransactionType.DEPOSIT))
                     .thenReturn(transaction);
@@ -119,7 +119,7 @@ class TransactionHandlerIT {
 
             assertThat(result).isNotNull();
             assertThat(result.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
-            verify(userInfoService).getCurrentUserId();
+            verify(securityService).getCurrentUserId();
             verify(accountService).validateAccountAndOwnership(ACCOUNT_NUMBER, USER_ID);
             verify(transactionProcessor).syncBalanceToAccountService(ACCOUNT_NUMBER, AMOUNT);
         }
@@ -130,7 +130,7 @@ class TransactionHandlerIT {
             Transaction transaction = createTransaction("TXN001", TransactionType.DEPOSIT);
             TransactionProcessingException exception = new TransactionProcessingException("Balance update failed");
 
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             doNothing().when(accountService).validateAccountAndOwnership(ACCOUNT_NUMBER, USER_ID);
             when(transactionProcessor.createAndSaveTransaction(request, TransactionType.DEPOSIT))
                     .thenReturn(transaction);
@@ -151,7 +151,7 @@ class TransactionHandlerIT {
         void processTransaction_ValidateOwnershipFails_ExceptionBubblesUp() {
             TransactionRequest request = createTransactionRequest();
 
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             doThrow(new SecurityException("Access denied"))
                     .when(accountService).validateAccountAndOwnership(ACCOUNT_NUMBER, USER_ID);
 
@@ -176,7 +176,7 @@ class TransactionHandlerIT {
             TransactionResponse response = createTransactionResponse("TXN002");
             BigDecimal balanceAfterWithdrawal = BigDecimal.valueOf(9500);
 
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             doNothing().when(accountService).validateAccountAndOwnership(ACCOUNT_NUMBER, USER_ID);
             when(transactionProcessor.createAndSaveTransaction(request, TransactionType.WITHDRAWAL))
                     .thenReturn(transaction);
@@ -199,7 +199,7 @@ class TransactionHandlerIT {
             Transaction transaction = createTransaction("TXN002", TransactionType.WITHDRAWAL);
             InsufficientFundsException exception = new InsufficientFundsException("Insufficient funds");
 
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             doNothing().when(accountService).validateAccountAndOwnership(ACCOUNT_NUMBER, USER_ID);
             when(transactionProcessor.createAndSaveTransaction(request, TransactionType.WITHDRAWAL))
                     .thenReturn(transaction);

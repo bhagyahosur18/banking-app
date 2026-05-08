@@ -14,8 +14,8 @@ import com.backendev.transactionservice.messaging.TransactionEventPublisher;
 import com.backendev.transactionservice.repository.AccountBalanceRepository;
 import com.backendev.transactionservice.repository.TransactionRepository;
 import com.backendev.transactionservice.service.AccountService;
+import com.backendev.transactionservice.service.SecurityService;
 import com.backendev.transactionservice.service.TransactionService;
-import com.backendev.transactionservice.service.UserInfoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,7 @@ class TransactionServiceIT {
     private AccountService accountService;
 
     @MockitoBean
-    private UserInfoService userInfoService;
+    private SecurityService securityService;
 
     @MockitoBean
     private TransactionEventPublisher eventPublisher;
@@ -189,7 +189,7 @@ class TransactionServiceIT {
 
         @BeforeEach
         void setUpTransfer() {
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             doNothing().when(accountService)
                     .validateTransferAccounts(ACCOUNT_NUMBER, TO_ACCOUNT_NUMBER, USER_ID);
         }

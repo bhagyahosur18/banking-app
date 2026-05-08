@@ -28,7 +28,6 @@ import java.util.List;
 public class TransactionService {
 
     private final AccountService accountService;
-    private final UserInfoService userInfoService;
     private final BalanceManager balanceManager;
     private final TransactionRepository transactionRepository;
     private final TransactionMapper transactionMapper;
@@ -36,32 +35,39 @@ public class TransactionService {
     private final AccountBalanceMapper accountBalanceMapper;
     private final TransactionHandler transactionHandler;
     private final TransactionEventPublisher eventPublisher;
+    private final SecurityService securityService;
 
     public TransactionResponse deposit(@Valid TransactionRequest request) {
+        String userId = securityService.getCurrentUserId();
+        String userEmail = securityService.getCurrentUserEmail();
         TransactionResponse transactionResponse = transactionHandler.processTransaction(request, TransactionType.DEPOSIT,
                 () -> {
                     balanceManager.updateAccountBalance(request.getAccountNumber(), request.getAmount());
                     return balanceManager.getBalance(request.getAccountNumber());
                 });
-        publishNotificationEvent("TRANSACTION_DEPOSITED", transactionResponse, "Transaction Alert - Deposit", "Debited: ");
+        publishNotificationEvent("TRANSACTION_DEPOSITED", transactionResponse, userId, userEmail, "Transaction Alert - Deposit", "Your account has been debited with $");
         return transactionResponse;
     }
 
     public TransactionResponse withdraw(TransactionRequest request) {
+        String userId = securityService.getCurrentUserId();
+        String userEmail = securityService.getCurrentUserEmail();
         TransactionResponse transactionResponse = transactionHandler.processTransaction(request, TransactionType.WITHDRAWAL, () -> {
             balanceManager.validateSufficientFunds(request.getAccountNumber(), request.getAmount());
             balanceManager.updateAccountBalance(request.getAccountNumber(), request.getAmount().negate());
             return balanceManager.getBalance(request.getAccountNumber());
         });
-        publishNotificationEvent("TRANSACTION_WITHDRAWAL", transactionResponse, "Transaction Alert - Withdrawal", "Withdrawal: ");
+        publishNotificationEvent("TRANSACTION_WITHDRAWAL", transactionResponse, userId, userEmail, "Transaction Alert - Withdrawal", "Your account has been credited with $");
         return transactionResponse;
     }
 
     public TransactionResponse transfer(TransferRequest request) {
-        String currentUserId = userInfoService.getCurrentUserId();
-        accountService.validateTransferAccounts(request.getFromAccountNumber(), request.getToAccountNumber(), currentUserId);
+        String userId = securityService.getCurrentUserId();
+        String userEmail = securityService.getCurrentUserEmail();
+        accountService.validateTransferAccounts(request.getFromAccountNumber(), request.getToAccountNumber(), userId);
         TransactionResponse transactionResponse = transactionHandler.processTransferTransaction(request);
-        publishNotificationEvent("TRANSACTION_TRANSFER", transactionResponse, "Transaction Alert - Transfer", "Transfer: ");
+        publishNotificationEvent("TRANSACTION_TRANSFER", transactionResponse, userId, userEmail, "Transaction Alert - Transfer", "Your account has been credited with $");
+
         return transactionResponse;
     }
 
@@ -88,14 +94,15 @@ public class TransactionService {
                         "Account number does not exist: " + accountNumber));
     }
 
-    private void publishNotificationEvent(String transactionType, TransactionResponse transactionResponse, String subject, String message) {
+    private void publishNotificationEvent(String transactionType, TransactionResponse transactionResponse, String userId, String email, String subject, String message) {
+        String accountMessage = transactionResponse.getAmount() + ". The account balance is $" + transactionResponse.getAccountBalance();
         NotificationEvent event = NotificationEvent.builder()
                 .eventType(transactionType)
                 .status(transactionResponse.getStatus().toString())
-                .userId("User ID")
-                .email("user@exmaple.com")
+                .userId(userId)
+                .email(email)
                 .subject(subject)
-                .message(message + transactionResponse.getAmount())
+                .message(message + accountMessage)
                 .build();
         eventPublisher.publishTransactionEvent(event);
     }

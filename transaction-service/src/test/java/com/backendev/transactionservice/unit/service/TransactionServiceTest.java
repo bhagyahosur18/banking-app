@@ -18,9 +18,9 @@ import com.backendev.transactionservice.repository.AccountBalanceRepository;
 import com.backendev.transactionservice.repository.TransactionRepository;
 import com.backendev.transactionservice.service.AccountService;
 import com.backendev.transactionservice.service.BalanceManager;
+import com.backendev.transactionservice.service.SecurityService;
 import com.backendev.transactionservice.service.TransactionHandler;
 import com.backendev.transactionservice.service.TransactionService;
-import com.backendev.transactionservice.service.UserInfoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,7 +53,7 @@ class TransactionServiceTest {
     private AccountService accountService;
 
     @Mock
-    private UserInfoService userInfoService;
+    private SecurityService securityService;
 
     @Mock
     private BalanceManager balanceManager;
@@ -237,14 +237,14 @@ class TransactionServiceTest {
 
     @Test
     void transfer_Success() {
-        when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+        when(securityService.getCurrentUserId()).thenReturn(USER_ID);
         when(transactionHandler.processTransferTransaction(transferRequest)).thenReturn(transactionResponse);
 
         TransactionResponse result = transactionService.transfer(transferRequest);
 
         assertNotNull(result);
         assertEquals(TransactionStatus.COMPLETED, result.getStatus());
-        verify(userInfoService).getCurrentUserId();
+        verify(securityService).getCurrentUserId();
         verify(accountService).validateTransferAccounts(ACCOUNT_NUMBER, TO_ACCOUNT_NUMBER, USER_ID);
         verify(transactionHandler).processTransferTransaction(transferRequest);
     }

@@ -11,9 +11,9 @@ import com.backendev.transactionservice.exception.InvalidAccountException;
 import com.backendev.transactionservice.exception.TransactionProcessingException;
 import com.backendev.transactionservice.service.AccountService;
 import com.backendev.transactionservice.service.BalanceManager;
+import com.backendev.transactionservice.service.SecurityService;
 import com.backendev.transactionservice.service.TransactionHandler;
 import com.backendev.transactionservice.service.TransactionProcessor;
-import com.backendev.transactionservice.service.UserInfoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TransactionHandlerTest {
     @Mock
-    private UserInfoService userInfoService;
+    private SecurityService securityService;
 
     @Mock
     private TransactionProcessor transactionProcessor;
@@ -95,7 +95,7 @@ class TransactionHandlerTest {
         void processTransaction_Deposit_Success() {
             TransactionHandler.BalanceOperation operation = () -> NEW_BALANCE;
 
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             when(transactionProcessor.createAndSaveTransaction(transactionRequest, TransactionType.DEPOSIT))
                     .thenReturn(transaction);
             when(transactionProcessor.completeTransaction(transaction, NEW_BALANCE))
@@ -106,7 +106,7 @@ class TransactionHandlerTest {
 
             assertNotNull(result);
             assertEquals(TransactionStatus.COMPLETED, result.getStatus());
-            verify(userInfoService).getCurrentUserId();
+            verify(securityService).getCurrentUserId();
             verify(accountService).validateAccountAndOwnership(ACCOUNT_NUMBER, USER_ID);
             verify(transactionProcessor).createAndSaveTransaction(transactionRequest, TransactionType.DEPOSIT);
             verify(transactionProcessor).completeTransaction(transaction, NEW_BALANCE);
@@ -116,7 +116,7 @@ class TransactionHandlerTest {
         void processTransaction_DepositWithBalanceOperation_Success() {
             TransactionHandler.BalanceOperation operation = () -> NEW_BALANCE;
 
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             when(transactionProcessor.createAndSaveTransaction(transactionRequest, TransactionType.DEPOSIT))
                     .thenReturn(transaction);
             when(transactionProcessor.completeTransaction(transaction, NEW_BALANCE))
@@ -137,7 +137,7 @@ class TransactionHandlerTest {
                 throw exception;
             };
 
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             when(transactionProcessor.createAndSaveTransaction(transactionRequest, TransactionType.DEPOSIT))
                     .thenReturn(transaction);
 
@@ -158,7 +158,7 @@ class TransactionHandlerTest {
         void processTransaction_Withdrawal_Success() {
             TransactionHandler.BalanceOperation operation = () -> NEW_BALANCE;
 
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             when(transactionProcessor.createAndSaveTransaction(transactionRequest, TransactionType.WITHDRAWAL))
                     .thenReturn(transaction);
             when(transactionProcessor.completeTransaction(transaction, NEW_BALANCE))
@@ -181,7 +181,7 @@ class TransactionHandlerTest {
                 throw exception;
             };
 
-            when(userInfoService.getCurrentUserId()).thenReturn(USER_ID);
+            when(securityService.getCurrentUserId()).thenReturn(USER_ID);
             when(transactionProcessor.createAndSaveTransaction(transactionRequest, TransactionType.WITHDRAWAL))
                     .thenReturn(transaction);
 

@@ -20,7 +20,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class TransactionHandler {
 
-    private final UserInfoService userInfoService;
+    private final SecurityService securityService;
     private final TransactionProcessor transactionProcessor;
     private final AccountService accountService;
     private final BalanceManager balanceManager;
@@ -28,7 +28,7 @@ public class TransactionHandler {
     public TransactionResponse processTransaction(TransactionRequest request,
                                                    TransactionType type,
                                                    BalanceOperation operation) {
-        String currentUserId = userInfoService.getCurrentUserId();
+        String currentUserId = securityService.getCurrentUserId();
         accountService.validateAccountAndOwnership(request.getAccountNumber(), currentUserId);
 
         Transaction transaction = transactionProcessor.createAndSaveTransaction(request, type);
