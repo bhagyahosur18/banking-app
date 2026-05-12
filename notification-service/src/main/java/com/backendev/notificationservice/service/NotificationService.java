@@ -1,12 +1,16 @@
 package com.backendev.notificationservice.service;
 
 import com.backendev.notificationservice.dto.NotificationEvent;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
+@AllArgsConstructor
 public class NotificationService {
+
+    private final EmailService emailService;
 
     public void processNotification(NotificationEvent event) {
         log.info("===== NOTIFICATION =====");
@@ -15,12 +19,12 @@ public class NotificationService {
         log.info("Email   : {}", event.getEmail());
         log.info("Subject : {}", event.getSubject());
         log.info("Message : {}", event.getMessage());
-        sendEmail(event);
-    }
 
-    private void sendEmail(NotificationEvent event) {
-        // Placeholder — integrate any email provider here
-        log.info("[EMAIL] To: {} | Subject: {} | Body: {}",
-                event.getEmail(), event.getSubject(), event.getMessage());
+        try {
+            emailService.sendEmail(event);
+        } catch (Exception e) {
+            log.error("Failed to process notification for user: {} | Error: {}",
+                    event.getUserId(), e.getMessage());
+        }
     }
 }

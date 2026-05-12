@@ -192,6 +192,8 @@ services:
       - EUREKA_CLIENT_FETCH_REGISTRY=true
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
       - EUREKA_INSTANCE_HOSTNAME=notification-service
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
     depends_on:
       eureka-server:
         condition: service_healthy
