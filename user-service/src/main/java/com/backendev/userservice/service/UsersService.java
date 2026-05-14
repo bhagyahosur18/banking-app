@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -83,6 +84,7 @@ public class UsersService {
 
     private void publishNotificationEvent(AuditEventType auditEventType, String status, String userId, String email, String subject, String message){
         NotificationEvent event = NotificationEvent.builder()
+                .eventId(UUID.randomUUID().toString())
                 .eventType(auditEventType.name())
                 .status(status)
                 .userId(userId)

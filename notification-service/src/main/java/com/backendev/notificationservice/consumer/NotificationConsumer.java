@@ -2,6 +2,7 @@ package com.backendev.notificationservice.consumer;
 
 import com.backendev.notificationservice.dto.NotificationEvent;
 import com.backendev.notificationservice.service.NotificationService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class NotificationConsumer {
         log.info("Received account event: {}", message);
         processEvent(message);
     }
+
     @KafkaListener(topics = "${notification.topics.transaction-events}", groupId = "${spring.kafka.consumer.group-id}")
     public void consumeTransactionEvent(String message) {
         log.info("Received transaction event: {}", message);
@@ -34,11 +36,13 @@ public class NotificationConsumer {
     }
 
     private void processEvent(String message) {
+        NotificationEvent event;
         try {
-            NotificationEvent event = objectMapper.readValue(message, NotificationEvent.class);
-            notificationService.processNotification(event);
-        } catch (Exception e) {
-            log.error("Failed to process notification event. Raw message: {} | Error: {}", message, e.getMessage());
+            event = objectMapper.readValue(message, NotificationEvent.class);
+        } catch (JsonProcessingException e) {
+            log.error("Invalid JSON — discarding message. Error: {}", e.getMessage());
+            return;
         }
+        notificationService.processNotification(event);
     }
 }

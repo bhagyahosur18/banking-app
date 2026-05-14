@@ -186,6 +186,9 @@ services:
       - "8084:8084"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://notification-db:5432/notificationdb
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASS}
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - EUREKA_CLIENT_REGISTER_WITH_EUREKA=true
@@ -202,10 +205,25 @@ services:
     networks:
       - microservices-network
 
+  notification-db:
+    image: postgres:15
+    container_name: notification-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notificationdb
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    networks:
+      - microservices-network
 volumes:
   user_db_data:
   account_db_data:
   transaction_db_data:
+  notification_db_data:
 
 networks:
   microservices-network:

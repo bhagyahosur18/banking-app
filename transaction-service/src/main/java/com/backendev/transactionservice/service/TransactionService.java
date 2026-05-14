@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -97,6 +98,7 @@ public class TransactionService {
     private void publishNotificationEvent(String transactionType, TransactionResponse transactionResponse, String userId, String email, String subject, String message) {
         String accountMessage = transactionResponse.getAmount() + ". The account balance is $" + transactionResponse.getAccountBalance();
         NotificationEvent event = NotificationEvent.builder()
+                .eventId(UUID.randomUUID().toString())
                 .eventType(transactionType)
                 .status(transactionResponse.getStatus().toString())
                 .userId(userId)

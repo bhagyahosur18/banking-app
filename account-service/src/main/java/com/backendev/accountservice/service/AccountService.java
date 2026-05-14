@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -102,7 +103,7 @@ public class AccountService {
 
         AccountResponse accountResponse = new AccountResponse("DELETED", "Account deleted successfully");
 
-        publishNotificationEvent("Account Deleted","Your account has been deleted successfully", account.getUserId(), account.getEmail(),
+        publishNotificationEvent("ACCOUNT DELETED","Your account has been deleted successfully", account.getUserId(), account.getEmail(),
                 "Account Deleted" ,
                 "Your account with account number "+ accountNumber +" has been deleted.");
 
@@ -153,6 +154,7 @@ public class AccountService {
 
     private void publishNotificationEvent(String eventType, String status, String userId, String email, String subject, String message){
         NotificationEvent event = NotificationEvent.builder()
+                .eventId(UUID.randomUUID().toString())
                 .eventType(eventType)
                 .status(status)
                 .userId(userId)

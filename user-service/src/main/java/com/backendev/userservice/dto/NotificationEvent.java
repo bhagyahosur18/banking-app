@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class NotificationEvent {
 
+    private String eventId;
     private String eventType;
     private String status;
     private String userId;

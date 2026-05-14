@@ -267,7 +267,7 @@ class AccountServiceTest {
             accountService.deleteAccount(accountNumber);
 
             verify(accountEventPublisher).publishAccountEvent(argThat(event ->
-                    "Account Deleted".equals(event.getEventType()) &&
+                    "ACCOUNT DELETED".equals(event.getEventType()) &&
                             "Account Deleted".equals(event.getSubject())
             ));
         }
