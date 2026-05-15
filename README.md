@@ -246,4 +246,4 @@ Configure these in **Settings → Secrets and variables → Actions**:
 
 ## License
 
-This project is licensed under the [MIT License](./LICENSE).
+This project is licensed under the MIT License.
