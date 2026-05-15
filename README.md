@@ -1,183 +1,249 @@
 # Banking App
 
-A modular and secure microservices-based banking application built with Spring Boot and containerized with Docker. This project demonstrates clean architecture with fully automated CI/CD pipeline, comprehensive security hardening, JWT-based authentication, inter-service communication, and best practices in backend development.
+A modular, secure microservices-based banking application built with **Spring Boot 3.5** and **Java 17**, containerized with Docker and deployed via a fully automated GitHub Actions CI/CD pipeline.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Services](#services)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Running with Docker Compose](#running-with-docker-compose)
+- [Running Services Locally](#running-services-locally)
+- [Environment Variables](#environment-variables)
+- [API Documentation](#api-documentation)
+- [Authentication](#authentication)
+- [Kafka & Event Flow](#kafka--event-flow)
+- [CI/CD Pipeline](#cicd-pipeline)
+- [GitHub Secrets Required](#github-secrets-required)
+- [Future Improvements](#future-improvements)
+
+## Overview
+
+This project demonstrates backend engineering patterns including:
+
+- Clean microservices separation with independently deployable services
+- JWT-based authentication and role-based access control (RBAC)
+- Asynchronous event-driven communication via Apache Kafka
+- Kafka retry logic, dead letter topics (DLT), and idempotent event processing
+- Eureka-based service discovery
+- Per-service PostgreSQL databases (database-per-service pattern)
+- Multi-architecture Docker builds (amd64 + arm64)
+- Full CI/CD with GitHub Actions
+
 
 ## Architecture
-![System Architecture](./architecture.png)
+![System Architecture](./banking-app-architecture.png)
 
-### Features
-| Service                 | Description                                                               |
-|-------------------------|---------------------------------------------------------------------------|
-| **User Service**        | Handles user registration, login, JWT issuance, and profile management    |
-| **Account Service**     | Manages account creation, balance tracking, and admin-level operations    |
-| **Transaction Service** | Processes deposits, withdrawals, transfers, and transaction history       |
+## Services
 
-Each service is independently deployable, Dockerized, and registered with Eureka for service discovery.
+| Service | Port | Responsibility |
+|---|---|---|
+| **User Service** | `8081` | User registration, login, JWT issuance, profile management |
+| **Account Service** | `8082` | Account creation, balance tracking, admin operations |
+| **Transaction Service** | `8083` | Deposits, withdrawals, transfers, transaction history |
+| **Notification Service** | `8084` | Consumes Kafka events and sends email notifications |
+| **Eureka Server** | `8761` | Service discovery and registry |
 
-### Technologies Used
+Each service is independently deployable, Dockerized, and registered with Eureka.
+
+
+## Tech Stack
 
 **Core**
-- Java 17 | Spring Boot 3.5 | Spring Cloud 2025.0.0
+- Java 17, Spring Boot 3.5, Spring Cloud 2025.0.0
+  **Security & Auth**
+- Spring Security 6.5.5, JWT (JJWT 0.13.0)
+  **Messaging**
+- Apache Kafka (Confluent 7.5.0), Spring Kafka
+- Retry with exponential backoff, Dead Letter Topics (DLT), idempotent consumers
+  **Data**
+- Spring Data JPA, Hibernate 6.6.22, PostgreSQL 15
+  **Service Discovery**
+- Netflix Eureka (Spring Cloud)
+  **Build & DevOps**
+- Maven, Docker, Docker Buildx (multi-arch), GitHub Actions
+  **Documentation**
+- OpenAPI 3.0, Springdoc, Swagger UI
+  **Utilities**
+- Lombok, MapStruct, JaCoCo (code coverage), SLF4J
 
-**Security & Auth**
-- Spring Security 6.5.5 | JWT (JJWT 0.13.0)
+## Getting Started
 
-**Data & Database**
-- Spring Data JPA | Hibernate 6.6.22 | PostgreSQL
+### Prerequisites
 
-**Build & DevOps**
-- Maven | Docker | GitHub Actions | Docker Buildx
+- Java 17+
+- Maven 3.8+
+- Docker & Docker Compose
+- A running PostgreSQL instance (or use Docker Compose)
+- A running Kafka instance (or use Docker Compose)
+### Clone the repository
 
-**Documentation & API**
-- OpenAPI 3.0 (Springdoc) | Swagger UI
-
-**Additional**
-- Lombok | MapStruct | JaCoCo (Code Coverage)
-
-### Authentication & Security
-
-- JWT tokens are issued by the **User Service** upon login
-- Tokens must be included in the `Authorization` header for protected endpoints:
-  ```http
-  Authorization: Bearer <your-jwt-token>
-  ```
-
-## CI/CD Pipeline
-
-### Overview
-This project uses **GitHub Actions** for continuous integration and deployment. Every push triggers automated testing, building, and Docker image publishing.
-
-### Workflow
-The CI/CD pipeline is defined in `.github/workflows/ci-cd.yml` and includes:
-
-#### 1. **Build & Test Job** (`build-and-test`)
-Runs on every push to `main` and `develop` branches:
-- Checks out code from GitHub
-- Sets up Java 17 with Maven
-- Builds all three Spring Boot services
-- Runs unit tests
-- Runs integration tests with PostgreSQL database service
-- Uploads test results as artifacts
-
-**Trigger:** Every push to `main` or `develop`, or pull request
-
-#### 2. **Docker Build & Push Job** (`build-docker-images`)
-Runs ONLY after tests pass AND only on `main` branch:
-- Sets up Docker Buildx for multi-architecture builds
-- Authenticates with Docker Hub
-- Builds Docker images for all services:
-    - `user-service`
-    - `account-service`
-    - `transaction-service`
-    - `eureka-server`
-- Builds for both `linux/amd64` and `linux/arm64` architectures
-- Pushes images to Docker Hub with tags: `latest` and git commit SHA
-
-**Trigger:** Only on successful `main` branch builds
-
-### Services Built
-| Service             | Image                                      | Port |
-|---------------------|--------------------------------------------|------|
-| User Service        | `your-username/user-service:latest`        | 8081 |
-| Account Service     | `your-username/account-service:latest`     | 8082 |
-| Transaction Service | `your-username/transaction-service:latest` | 8083 |
-| Eureka Server       | `your-username/eureka-server:latest`       | 8761 |
-
-### Local Testing
-To run services locally with Docker:
 ```bash
-# Start PostgreSQL
-docker run -d --name postgres-db --network banking-network \
+git clone https://github.com/bhagyahosur18/banking-app.git
+cd banking-app
+```
+
+## Running with Docker Compose
+
+The easiest way to spin up the full stack locally.
+
+**1. Create a `.env` file** in the project root:
+
+```env
+JWT_SECRET=your-super-secret-jwt-key
+DB_USER=postgres
+DB_PASS=postgres
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+```
+
+**2. Start everything:**
+
+```bash
+docker-compose up --build
+```
+
+This starts: Zookeeper, Kafka, Eureka Server, all four microservices, and four PostgreSQL databases — all on a shared `microservices-network`.
+
+**3. Verify services are running:**
+
+| Service | URL |
+|---|---|
+| Eureka Dashboard | http://localhost:8761 |
+| User Service | http://localhost:8081 |
+| Account Service | http://localhost:8082 |
+| Transaction Service | http://localhost:8083 |
+| Notification Service | http://localhost:8084 |
+
+## Running Services Locally
+
+If you prefer to run services individually outside Docker:
+
+```bash
+# Start PostgreSQL (Docker)
+docker run -d --name postgres-db \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
   -p 5432:5432 postgres:15
-
-# Create databases
+ 
+# Create the required databases
 docker exec -it postgres-db psql -U postgres -c "CREATE DATABASE usersdb;"
 docker exec -it postgres-db psql -U postgres -c "CREATE DATABASE accountdb;"
 docker exec -it postgres-db psql -U postgres -c "CREATE DATABASE transactiondb;"
-
-# Start services
-docker run -p 8081:8081 --network banking-network \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/usersdb \
-  -e SPRING_DATASOURCE_USERNAME=postgres \
-  -e SPRING_DATASOURCE_PASSWORD=postgres \
-  -e JWT_SECRET=your-secret-key \
-  your-username/user-service:latest
-
-docker run -p 8082:8082 --network banking-network \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/accountdb \
-  -e SPRING_DATASOURCE_USERNAME=postgres \
-  -e SPRING_DATASOURCE_PASSWORD=postgres \
-  -e JWT_SECRET=your-secret-key \
-  your-username/account-service:latest
-
-docker run -p 8083:8083 --network banking-network \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/transactiondb \
-  -e SPRING_DATASOURCE_USERNAME=postgres \
-  -e SPRING_DATASOURCE_PASSWORD=postgres \
-  -e JWT_SECRET=your-secret-key \
-  your-username/transaction-service:latest
+docker exec -it postgres-db psql -U postgres -c "CREATE DATABASE notificationdb;"
+ 
+# Build all services
+mvn clean install -DskipTests
+ 
+# Run individual services
+cd user-service && mvn spring-boot:run
+cd account-service && mvn spring-boot:run
+cd transaction-service && mvn spring-boot:run
+cd notification-service && mvn spring-boot:run
 ```
 
-### Environment Variables
-| Variable                     | Description             | Example                                      |
-|------------------------------|-------------------------|----------------------------------------------|
-| `SPRING_DATASOURCE_URL`      | Database connection URL | `jdbc:postgresql://postgres-db:5432/usersdb` |
-| `SPRING_DATASOURCE_USERNAME` | Database username       | `postgres`                                   |
-| `SPRING_DATASOURCE_PASSWORD` | Database password       | `postgres`                                   |
-| `JWT_SECRET`                 | JWT token signing key   | `your-secret-key`                            |
+## Environment Variables
 
-### GitHub Secrets Required
-Configure these in your GitHub repository settings (Settings → Secrets and variables → Actions):
-- `DOCKER_USERNAME` - Your Docker Hub username
-- `DOCKER_PASSWORD` - Your Docker Hub password or access token
+| Variable | Description | Example |
+|---|---|---|
+| `JWT_SECRET` | Secret key for JWT signing | `my-secret-key-256bit` |
+| `DB_USER` | PostgreSQL username | `postgres` |
+| `DB_PASS` | PostgreSQL password | `postgres` |
+| `SPRING_DATASOURCE_URL` | JDBC connection URL | `jdbc:postgresql://localhost:5432/usersdb` |
+| `SPRING_KAFKA_BOOTSTRAP_SERVERS` | Kafka broker address | `kafka:29092` |
+| `EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE` | Eureka registry URL | `http://eureka-server:8761/eureka/` |
+| `MAIL_USERNAME` | SMTP email address | `your-email@gmail.com` |
+| `MAIL_PASSWORD` | SMTP app password | `your-app-password` |
+
+## API Documentation
+
+Swagger UI is available for each service when running:
+
+| Service | Swagger URL |
+|---|---|
+| User Service | http://localhost:8081/swagger-ui/index.html |
+| Account Service | http://localhost:8082/swagger-ui/index.html |
+| Transaction Service | http://localhost:8083/swagger-ui/index.html |
+
+## Authentication
+
+JWT tokens are issued by the **User Service** on successful login.
+
+Include the token in all protected requests:
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+- Tokens are validated by each service independently via Spring Security
+- Role-based access control (RBAC) restricts admin vs user operations
+- All CVE vulnerabilities are patched and regularly reviewed
+
+## Kafka & Event Flow
+
+Services publish events to Kafka topics on significant actions (user created, account updated, transaction processed). The Notification Service consumes these events and sends email notifications.
+
+**Topics:**
+- `user-events` — user registration, profile changes
+- `account-events` — account creation, status changes
+- `transaction-events` — deposits, withdrawals, transfers
+  **Reliability features:**
+- **Retry with exponential backoff** — failed messages are retried up to 3 times (1s → 2s → 4s)
+- **Dead Letter Topic (DLT)** — messages that exhaust retries are routed to `<topic>.DLT` for inspection
+- **Idempotent consumers** — duplicate events are detected via `eventId` and safely ignored
+
+## CI/CD Pipeline
+
+Every push to `main` or `develop` triggers the GitHub Actions pipeline.
+
+### Stage 1 — Build & Test (`build-and-test`)
+
+Runs on every push and pull request:
+
+1. Check out code
+2. Set up Java 17 with Maven cache
+3. Build all Spring Boot services
+4. Run unit tests
+5. Run integration tests with a PostgreSQL service container
+6. Upload test results as artifacts
 
 
-### API Documentation
+### Stage 2 — Docker Build & Push (`build-docker-images`)
 
-| Service                 | Description                                  |
-|-------------------------|----------------------------------------------|
-| **User Service**        | http://localhost:8081/swagger-ui/index.html  |
-| **Account Service**     | http://localhost:8082/swagger-ui/index.html  |
-| **Transaction Service** | http://localhost:8083/swagger-ui/index.html  |
+Runs only after tests pass, and only on `main`:
 
-### Architecture Highlights
+1. Set up Docker Build for multi-architecture builds
+2. Authenticate with Docker Hub
+3. Build and push images for all services:
+  - `user-service`
+  - `account-service`
+  - `transaction-service`
+  - `notification-service`
+  - `eureka-server`
+4. Tags: `latest` and git commit SHA
+5. Architectures: `linux/amd64` and `linux/arm64`
 
-**Microservices Design**
-- Three independent Spring Boot services with isolated responsibilities
-- Clean separation of concerns: Controller → Service → Repository
-- DTOs mapped via MapStruct for type-safe transformations
-- Service-to-service communication via REST APIs (Account ↔ Transaction)
-- Eureka-based service discovery for dynamic service registration
+## GitHub Secrets Required
 
-**Containerization & Deployment**
-- Dockerized microservices with multi-architecture support (amd64 & arm64)
-- Docker networking for inter-service communication
-- Environment-based configuration via Docker environment variables
-- Automated image publishing to Docker Hub via GitHub Actions
+Configure these in **Settings → Secrets and variables → Actions**:
 
-**API & Documentation**
-- OpenAPI 3.0 specification with Swagger UI for all services
-- Standardized REST API design with proper HTTP status codes
-- Request/response validation with Bean Validation
+| Secret | Description |
+|---|---|
+| `DOCKER_USERNAME` | Docker Hub username |
+| `DOCKER_PASSWORD` | Docker Hub password or access token |
+| `JWT_SECRET` | JWT signing secret used |
 
-**Observability & Maintenance**
-- Audit logging with automatic tracking of user actions
-- Structured logging with SLF4J and Logback
-- Test coverage with JUnit 5, Mockito, and JaCoCo
+## Future Improvements
 
-**Security**
-- JWT-based authentication across all services
-- Spring Security with role-based access control (RBAC)
-- All CVE vulnerabilities patched and regularly updated
+- API Gateway (Spring Cloud Gateway) as a single entry point
+- Centralized logging with ELK Stack (Elasticsearch, Logback, Kibana)
+- Distributed tracing with Zipkin or OpenTelemetry
+- Metrics and monitoring with Prometheus + Grafana
+- Password reset and email verification flow
+- Refresh token support
 
-### Future Improvements
-- Centralized logging and monitoring 
-- Password reset flow
-- API gateway implementation
+## License
 
-
-### License
-
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](./LICENSE).
